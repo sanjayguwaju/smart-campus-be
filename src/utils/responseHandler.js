@@ -75,6 +75,15 @@ class ResponseHandler {
   }
 
   /**
+   * Bad request response
+   * @param {Object} res - Express response object
+   * @param {string} message - Bad request message
+   */
+  static badRequest(res, message = 'Bad Request') {
+    return this.error(res, 400, message);
+  }
+
+  /**
    * Conflict response
    * @param {Object} res - Express response object
    * @param {string} message - Conflict message

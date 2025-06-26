@@ -554,9 +554,17 @@ const validateEventAttendance = [
   handleValidationErrors
 ];
 
+// Alias for validateCreateEvent
+const validateEvent = validateCreateEvent;
+
+// Alias for validateUpdateEvent
+const validateEventUpdate = validateUpdateEvent;
+
 module.exports = {
   validateCreateEvent,
   validateUpdateEvent,
+  validateEvent,
+  validateEventUpdate,
   validateEventId,
   validateEventQuery,
   validateEventRegistration,

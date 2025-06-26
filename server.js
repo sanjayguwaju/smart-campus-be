@@ -9,7 +9,7 @@ const swaggerUi = require('swagger-ui-express');
 require('dotenv').config();
 
 const connectDB = require('./src/config/db.config');
-const errorMiddleware = require('./src/middleware/error.middleware');
+const { errorHandler } = require('./src/middleware/error.middleware');
 const logger = require('./src/utils/logger');
 
 // Import routes
@@ -126,7 +126,7 @@ app.use('*', (req, res) => {
 });
 
 // Error handling middleware
-app.use(errorMiddleware);
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
