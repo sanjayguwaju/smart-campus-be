@@ -10,6 +10,33 @@ const {
   validateForgotPassword,
   validateResetPassword
 } = require('../validation/user.validation');
+const multer = require('multer');
+const path = require('path');
+
+// Multer storage config for profile pictures
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../../uploads/avatars'));
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, req.user._id + '-' + Date.now() + ext);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 } // 2MB limit
+});
 
 /**
  * @swagger
@@ -283,5 +310,29 @@ router.get('/verify-email/:token', authController.verifyEmail);
  *         description: Verification email sent successfully
  */
 router.post('/resend-verification', validateForgotPassword, authController.resendVerification);
+
+/**
+ * @swagger
+ * /api/v1/auth/profile/avatar:
+ *   post:
+ *     summary: Upload or update profile picture
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile picture uploaded successfully
+ */
+router.post('/profile/avatar', authenticate, upload.single('avatar'), authController.uploadProfilePicture);
 
 module.exports = router; 

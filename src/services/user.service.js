@@ -7,9 +7,9 @@ const logger = require('../utils/logger');
  */
 class UserService {
   /**
-   * Create a new user
+   * Create a new user and return user info with tokens (for frontend)
    * @param {Object} userData - User data
-   * @returns {Promise<Object>} Created user
+   * @returns {Promise<Object>} Created user with tokens
    */
   async createUser(userData) {
     try {
@@ -19,16 +19,40 @@ class UserService {
         throw new Error('User with this email already exists');
       }
 
+      // Role-based required fields
+      if (userData.role === 'student' && !userData.studentId) {
+        throw new Error('Student ID is required for students');
+      }
+      if (userData.role === 'faculty' && !userData.facultyId) {
+        throw new Error('Faculty ID is required for faculty');
+      }
+
       // Create user
       const user = new User(userData);
       await user.save();
 
-      // Remove password from response
+      // Generate tokens
+      const tokenPayload = {
+        userId: user._id,
+        email: user.email,
+        role: user.role
+      };
+      const accessToken = generateToken(tokenPayload);
+      const refreshToken = generateRefreshToken(tokenPayload);
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      // Remove sensitive data from response
       const userResponse = user.toObject();
       delete userResponse.password;
+      delete userResponse.refreshToken;
 
       logger.info(`User created: ${user.email}`);
-      return userResponse;
+      return {
+        user: userResponse,
+        accessToken,
+        refreshToken
+      };
     } catch (error) {
       logger.error('Error creating user:', error);
       throw error;
@@ -369,6 +393,56 @@ class UserService {
       };
     } catch (error) {
       logger.error('Error getting user stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Forgot password: generate reset token and (stub) send email
+   * @param {string} email - User email
+   * @returns {Promise<boolean>} Success status
+   */
+  async forgotPassword(email) {
+    try {
+      const user = await User.findByEmail(email);
+      if (!user) {
+        throw new Error('No user found with this email');
+      }
+      // Generate token
+      const crypto = require('crypto');
+      const token = crypto.randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      user.passwordResetToken = token;
+      user.passwordResetExpires = expires;
+      await user.save();
+      // TODO: Send email with token (stub)
+      logger.info(`Password reset token for ${email}: ${token}`);
+      return true;
+    } catch (error) {
+      logger.error('Error in forgotPassword:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset password with token
+   * @param {string} token - Reset token
+   * @param {string} newPassword - New password
+   * @returns {Promise<boolean>} Success status
+   */
+  async resetPassword(token, newPassword) {
+    try {
+      const user = await User.findOne({ passwordResetToken: token, passwordResetExpires: { $gt: new Date() } }).select('+password');
+      if (!user) {
+        throw new Error('Invalid or expired reset token');
+      }
+      user.password = newPassword;
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await user.save();
+      return true;
+    } catch (error) {
+      logger.error('Error in resetPassword:', error);
       throw error;
     }
   }

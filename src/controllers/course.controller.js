@@ -423,6 +423,50 @@ class CourseController {
       return ResponseHandler.error(res, 500, 'Failed to get enrollment status');
     }
   }
+
+  /**
+   * Student enrolls themselves in a course
+   */
+  async enrollSelf(req, res) {
+    try {
+      const courseId = req.params.courseId;
+      const studentId = req.user._id;
+      const course = await courseService.enrollStudent(courseId, studentId);
+      return ResponseHandler.success(res, 200, 'Enrolled in course successfully', course);
+    } catch (error) {
+      logger.error('Self-enroll error:', error);
+      return ResponseHandler.error(res, 400, error.message);
+    }
+  }
+
+  /**
+   * Student unenrolls themselves from a course
+   */
+  async unenrollSelf(req, res) {
+    try {
+      const courseId = req.params.courseId;
+      const studentId = req.user._id;
+      const course = await courseService.removeStudent(courseId, studentId);
+      return ResponseHandler.success(res, 200, 'Unenrolled from course successfully', course);
+    } catch (error) {
+      logger.error('Self-unenroll error:', error);
+      return ResponseHandler.error(res, 400, error.message);
+    }
+  }
+
+  /**
+   * Get student's personal timetable (from enrolled courses)
+   */
+  async getStudentTimetable(req, res) {
+    try {
+      const studentId = req.user._id;
+      const timetable = await courseService.getStudentTimetable(studentId);
+      return ResponseHandler.success(res, 200, 'Student timetable retrieved successfully', timetable);
+    } catch (error) {
+      logger.error('Get student timetable error:', error);
+      return ResponseHandler.error(res, 400, error.message);
+    }
+  }
 }
 
 module.exports = new CourseController(); 

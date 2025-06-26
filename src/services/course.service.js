@@ -545,6 +545,23 @@ class CourseService {
       throw error;
     }
   }
+
+  /**
+   * Get student's personal timetable (from enrolled courses)
+   * @param {string} studentId - Student's user ID
+   * @returns {Promise<Array>} List of courses with schedule info
+   */
+  async getStudentTimetable(studentId) {
+    try {
+      const courses = await Course.find({ students: studentId, isActive: true, isPublished: true })
+        .select('title code department instructor schedule')
+        .populate('instructor', 'firstName lastName email department');
+      return courses;
+    } catch (error) {
+      logger.error('Error getting student timetable:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new CourseService(); 

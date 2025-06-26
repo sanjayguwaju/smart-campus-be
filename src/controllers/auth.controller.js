@@ -135,15 +135,11 @@ class AuthController {
   async forgotPassword(req, res) {
     try {
       const { email } = req.body;
-      
-      // TODO: Implement email service to send reset link
-      // For now, just return success message
-      logger.info(`Password reset requested for email: ${email}`);
-
+      await userService.forgotPassword(email);
       return ResponseHandler.success(res, 200, 'Password reset email sent successfully');
     } catch (error) {
       logger.error('Forgot password error:', error);
-      return ResponseHandler.error(res, 500, 'Failed to send reset email');
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -155,11 +151,7 @@ class AuthController {
   async resetPassword(req, res) {
     try {
       const { token, newPassword } = req.body;
-      
-      // TODO: Implement token verification and password reset
-      // For now, just return success message
-      logger.info(`Password reset with token: ${token}`);
-
+      await userService.resetPassword(token, newPassword);
       return ResponseHandler.success(res, 200, 'Password reset successfully');
     } catch (error) {
       logger.error('Reset password error:', error);
@@ -204,6 +196,26 @@ class AuthController {
     } catch (error) {
       logger.error('Resend verification error:', error);
       return ResponseHandler.error(res, 500, 'Failed to send verification email');
+    }
+  }
+
+  /**
+   * Upload or update profile picture
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async uploadProfilePicture(req, res) {
+    try {
+      if (!req.file) {
+        return ResponseHandler.error(res, 400, 'No file uploaded');
+      }
+      const userId = req.user._id;
+      const avatarPath = `/uploads/avatars/${req.file.filename}`;
+      const user = await userService.updateUser(userId, { avatar: avatarPath });
+      return ResponseHandler.success(res, 200, 'Profile picture uploaded successfully', user);
+    } catch (error) {
+      logger.error('Upload profile picture error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 }

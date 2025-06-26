@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const courseController = require('../controllers/course.controller');
-const { authenticate, requireFacultyOrAdmin, canAccessCourse, canModifyCourse } = require('../middleware/auth.middleware');
+const { authenticate, requireFacultyOrAdmin, requireStudent, canAccessCourse, canModifyCourse } = require('../middleware/auth.middleware');
 const {
   validateCourseCreation,
   validateCourseUpdate,
@@ -224,7 +224,7 @@ router.delete('/:courseId', authenticate, validateCourseId, canModifyCourse, cou
  * @swagger
  * /api/v1/courses/{courseId}/enroll:
  *   post:
- *     summary: Enroll student in course
+ *     summary: Student enrolls themselves in a course
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
@@ -234,28 +234,17 @@ router.delete('/:courseId', authenticate, validateCourseId, canModifyCourse, cou
  *         required: true
  *         schema:
  *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - studentId
- *             properties:
- *               studentId:
- *                 type: string
  *     responses:
  *       200:
- *         description: Student enrolled successfully
+ *         description: Enrolled in course successfully
  */
-router.post('/:courseId/enroll', authenticate, validateCourseId, validateCourseEnrollment, courseController.enrollStudent);
+router.post('/:courseId/enroll', authenticate, requireStudent, courseController.enrollSelf);
 
 /**
  * @swagger
- * /api/v1/courses/{courseId}/remove-student:
+ * /api/v1/courses/{courseId}/unenroll:
  *   post:
- *     summary: Remove student from course
+ *     summary: Student unenrolls themselves from a course
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
@@ -265,22 +254,11 @@ router.post('/:courseId/enroll', authenticate, validateCourseId, validateCourseE
  *         required: true
  *         schema:
  *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - studentId
- *             properties:
- *               studentId:
- *                 type: string
  *     responses:
  *       200:
- *         description: Student removed successfully
+ *         description: Unenrolled from course successfully
  */
-router.post('/:courseId/remove-student', authenticate, validateCourseId, validateCourseEnrollment, courseController.removeStudent);
+router.post('/:courseId/unenroll', authenticate, requireStudent, courseController.unenrollSelf);
 
 /**
  * @swagger
@@ -648,5 +626,19 @@ router.get('/search', authenticate, courseController.searchCourses);
  *         description: Enrollment status retrieved successfully
  */
 router.get('/:courseId/enrollment-status', authenticate, validateCourseId, courseController.getEnrollmentStatus);
+
+/**
+ * @swagger
+ * /api/v1/courses/timetable/me:
+ *   get:
+ *     summary: Get student's personal timetable
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Student timetable retrieved successfully
+ */
+router.get('/timetable/me', authenticate, requireStudent, courseController.getStudentTimetable);
 
 module.exports = router; 

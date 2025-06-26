@@ -82,8 +82,26 @@ class UserController {
     try {
       const { userId } = req.params;
       const updateData = req.body;
-      const user = await userService.updateUser(userId, updateData);
+      const requester = req.user;
 
+      // Only admin can update any user; others can only update their own profile
+      if (requester.role !== 'admin' && requester._id.toString() !== userId) {
+        return ResponseHandler.forbidden(res, 'You can only update your own profile');
+      }
+
+      // Define allowed fields for non-admins
+      const allowedFields = ['firstName', 'lastName', 'email', 'department', 'phone', 'avatar', 'address', 'year', 'rollNo'];
+      let filteredUpdateData = updateData;
+      if (requester.role !== 'admin') {
+        filteredUpdateData = {};
+        for (const key of allowedFields) {
+          if (updateData[key] !== undefined) {
+            filteredUpdateData[key] = updateData[key];
+          }
+        }
+      }
+
+      const user = await userService.updateUser(userId, filteredUpdateData);
       return ResponseHandler.success(res, 200, 'User updated successfully', user);
     } catch (error) {
       logger.error('Update user error:', error);
