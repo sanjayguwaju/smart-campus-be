@@ -74,6 +74,28 @@ class UserController {
   }
 
   /**
+   * Create new admin account (Super Admin only)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async createAdmin(req, res) {
+    try {
+      const userData = {
+        ...req.body,
+        role: 'admin', // Force role to be admin
+        isActive: true
+      };
+      
+      const user = await userService.createUser(userData);
+
+      return ResponseHandler.success(res, 201, 'Admin account created successfully', user);
+    } catch (error) {
+      logger.error('Create admin error:', error);
+      return ResponseHandler.error(res, 400, error.message);
+    }
+  }
+
+  /**
    * Update user
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object

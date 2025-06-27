@@ -291,6 +291,57 @@ const validateResetPassword = [
   handleValidationErrors
 ];
 
+/**
+ * Admin registration validation (stricter than regular user registration)
+ */
+const validateAdminRegistration = [
+  body('firstName')
+    .trim()
+    .notEmpty()
+    .withMessage('First name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('First name can only contain letters and spaces'),
+  
+  body('lastName')
+    .trim()
+    .notEmpty()
+    .withMessage('Last name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('Last name can only contain letters and spaces'),
+  
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Please enter a valid email address')
+    .normalizeEmail(),
+  
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+  
+  body('department')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Department cannot exceed 100 characters'),
+  
+  body('phone')
+    .optional()
+    .trim()
+    .matches(/^[\+]?[1-9][\d]{0,15}$/)
+    .withMessage('Please enter a valid phone number'),
+  
+  handleValidationErrors
+];
+
 module.exports = {
   validateUserRegistration,
   validateUserLogin,
@@ -301,5 +352,6 @@ module.exports = {
   validateRefreshToken,
   validateForgotPassword,
   validateResetPassword,
+  validateAdminRegistration,
   handleValidationErrors
 }; 
