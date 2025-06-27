@@ -150,7 +150,7 @@ const canAccessCourse = async (req, res, next) => {
 };
 
 /**
- * Middleware to check if user can modify course (instructor or admin)
+ * Middleware to check if user can modify course (any faculty or admin)
  */
 const canModifyCourse = async (req, res, next) => {
   try {
@@ -176,14 +176,14 @@ const canModifyCourse = async (req, res, next) => {
       return next();
     }
 
-    // Instructor can only modify their own courses
-    if (req.user.role === 'faculty' && course.instructor.toString() === req.user._id.toString()) {
+    // Any faculty can modify any course
+    if (req.user.role === 'faculty') {
       req.course = course;
       return next();
     }
 
     logger.warn(`User ${req.user.email} attempted to modify course ${courseId} without permission`);
-    return ResponseHandler.forbidden(res, 'Only course instructor or admin can modify this course');
+    return ResponseHandler.forbidden(res, 'Only faculty or admin can modify this course');
   } catch (error) {
     logger.error('Course modification check error:', error);
     return ResponseHandler.error(res, 500, 'Error checking course modification permissions');

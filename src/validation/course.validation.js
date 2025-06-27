@@ -45,8 +45,8 @@ const validateCourseCreation = [
     .withMessage('Course description cannot exceed 1000 characters'),
   
   body('instructor')
-    .isMongoId()
-    .withMessage('Invalid instructor ID format'),
+    .isString()
+    .withMessage('Instructor must be a string'),
   
   body('department')
     .trim()
@@ -153,8 +153,8 @@ const validateCourseUpdate = [
   
   body('instructor')
     .optional()
-    .isMongoId()
-    .withMessage('Invalid instructor ID format'),
+    .isString()
+    .withMessage('Instructor must be a string'),
   
   body('department')
     .optional()
@@ -341,8 +341,8 @@ const validateCourseQuery = [
   
   query('instructor')
     .optional()
-    .isMongoId()
-    .withMessage('Invalid instructor ID format'),
+    .isString()
+    .withMessage('Instructor must be a string'),
   
   query('isActive')
     .optional()

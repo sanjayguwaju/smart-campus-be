@@ -22,17 +22,8 @@ const courseSchema = new mongoose.Schema({
     maxlength: [1000, 'Course description cannot exceed 1000 characters']
   },
   instructor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: [true, 'Course instructor is required'],
-    validate: {
-      validator: async function(instructorId) {
-        const User = mongoose.model('User');
-        const user = await User.findById(instructorId);
-        return user && user.role === 'faculty';
-      },
-      message: 'Instructor must be a faculty member'
-    }
   },
   students: [{
     type: mongoose.Schema.Types.ObjectId,
