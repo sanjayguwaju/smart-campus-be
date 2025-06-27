@@ -1,7 +1,6 @@
 const Event = require('../models/event.model');
 const User = require('../models/user.model');
 const logger = require('../utils/logger');
-const { createError } = require('../utils/responseHandler');
 
 class EventService {
   /**
@@ -16,7 +15,9 @@ class EventService {
       // Validate organizer exists
       const organizer = await User.findById(eventData.organizer);
       if (!organizer) {
-        throw createError('Organizer not found', 404);
+        const err = new Error('Organizer not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       // Validate co-organizers exist
@@ -25,7 +26,9 @@ class EventService {
           _id: { $in: eventData.coOrganizers }
         });
         if (coOrganizers.length !== eventData.coOrganizers.length) {
-          throw createError('One or more co-organizers not found', 404);
+          const err = new Error('One or more co-organizers not found');
+          err.statusCode = 404;
+          throw err;
         }
       }
 
@@ -192,7 +195,9 @@ class EventService {
         .populate('updatedBy', 'firstName lastName email');
 
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       // Increment view count if user is authenticated
@@ -224,12 +229,16 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       // Check if user has permission to update
       if (event.createdBy.toString() !== userId && event.organizer.toString() !== userId) {
-        throw createError('Unauthorized to update this event', 403);
+        const err = new Error('Unauthorized to update this event');
+        err.statusCode = 403;
+        throw err;
       }
 
       // Set updatedBy
@@ -239,7 +248,9 @@ class EventService {
       if (updateData.organizer) {
         const organizer = await User.findById(updateData.organizer);
         if (!organizer) {
-          throw createError('Organizer not found', 404);
+          const err = new Error('Organizer not found');
+          err.statusCode = 404;
+          throw err;
         }
       }
 
@@ -249,7 +260,9 @@ class EventService {
           _id: { $in: updateData.coOrganizers }
         });
         if (coOrganizers.length !== updateData.coOrganizers.length) {
-          throw createError('One or more co-organizers not found', 404);
+          const err = new Error('One or more co-organizers not found');
+          err.statusCode = 404;
+          throw err;
         }
       }
 
@@ -276,12 +289,16 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       // Check if user has permission to delete
       if (event.createdBy.toString() !== userId) {
-        throw createError('Unauthorized to delete this event', 403);
+        const err = new Error('Unauthorized to delete this event');
+        err.statusCode = 403;
+        throw err;
       }
 
       await Event.findByIdAndDelete(eventId);
@@ -301,21 +318,29 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       // Check if registration is required and open
       if (!event.isRegistrationRequired) {
-        throw createError('Registration is not required for this event', 400);
+        const err = new Error('Registration is not required for this event');
+        err.statusCode = 400;
+        throw err;
       }
 
       if (!event.isRegistrationOpen) {
-        throw createError('Registration is closed for this event', 400);
+        const err = new Error('Registration is closed for this event');
+        err.statusCode = 400;
+        throw err;
       }
 
       // Check registration deadline
       if (event.registrationDeadline && new Date() > event.registrationDeadline) {
-        throw createError('Registration deadline has passed', 400);
+        const err = new Error('Registration deadline has passed');
+        err.statusCode = 400;
+        throw err;
       }
 
       // Check if user is already registered
@@ -325,7 +350,9 @@ class EventService {
 
       if (existingRegistration) {
         if (existingRegistration.status === 'registered' || existingRegistration.status === 'attended') {
-          throw createError('User is already registered for this event', 400);
+          const err = new Error('User is already registered for this event');
+          err.statusCode = 400;
+          throw err;
         } else if (existingRegistration.status === 'cancelled') {
           // Re-register cancelled user
           existingRegistration.status = 'registered';
@@ -365,7 +392,9 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       await event.cancelRegistration(userId);
@@ -385,12 +414,16 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       // Check if admin has permission
       if (event.organizer.toString() !== adminUserId && event.createdBy.toString() !== adminUserId) {
-        throw createError('Unauthorized to mark attendance', 403);
+        const err = new Error('Unauthorized to mark attendance');
+        err.statusCode = 403;
+        throw err;
       }
 
       await event.markAttended(userId);
@@ -410,7 +443,9 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       // Check if user attended the event
@@ -419,7 +454,9 @@ class EventService {
       );
 
       if (!attendance) {
-        throw createError('You must attend the event to review it', 400);
+        const err = new Error('You must attend the event to review it');
+        err.statusCode = 400;
+        throw err;
       }
 
       await event.addReview(userId, reviewData.rating, reviewData.comment);
@@ -560,7 +597,9 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       const statistics = {
@@ -642,7 +681,9 @@ class EventService {
         .lean();
 
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       let attendees = event.attendees;
@@ -675,7 +716,9 @@ class EventService {
         .lean();
 
       if (!event) {
-        throw createError('Event not found', 404);
+        const err = new Error('Event not found');
+        err.statusCode = 404;
+        throw err;
       }
 
       let reviews = event.reviews || [];
