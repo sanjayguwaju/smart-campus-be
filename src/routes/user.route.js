@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
-const { authenticate, requireAdmin, canAccessOwnResource } = require('../middleware/auth.middleware');
+const { authenticate, requireAdmin, canAccessOwnResource, authenticateAdmin } = require('../middleware/auth.middleware');
 const {
   validateUserRegistration,
   validateUserUpdate,
   validateUserId,
-  validateUserQuery
+  validateUserQuery,
+  validateAdminRegistration
 } = require('../validation/user.validation');
 
 /**
@@ -111,6 +112,58 @@ router.get('/:userId', authenticate, validateUserId, canAccessOwnResource('userI
  *         description: Validation error
  */
 router.post('/', authenticate, requireAdmin, validateUserRegistration, userController.createUser);
+
+/**
+ * @swagger
+ * /api/v1/users/admin:
+ *   post:
+ *     summary: Create new admin account (Super Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - email
+ *               - password
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 50
+ *               lastName:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 50
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: Must contain uppercase, lowercase, number, and special character
+ *               department:
+ *                 type: string
+ *                 maxLength: 100
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Admin account created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized - Admin access required
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ */
+router.post('/admin', authenticateAdmin, validateAdminRegistration, userController.createAdmin);
 
 /**
  * @swagger

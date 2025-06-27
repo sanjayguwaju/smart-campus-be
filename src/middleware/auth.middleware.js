@@ -29,6 +29,24 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+const authenticateAdmin = async (req, res, next) => {
+  try {
+    const token = req.headers['x-admin-token'];
+    if (!token) {
+      return ResponseHandler.unauthorized(res, 'Admin token required');
+    }
+
+    if (token !== process.env.ADMIN_TOKEN) {
+      return ResponseHandler.unauthorized(res, 'Invalid admin token');
+    }
+
+    next();
+  } catch (error) {
+    logger.error('Admin authentication error:', error);
+    return ResponseHandler.unauthorized(res, 'Invalid admin token');
+  }
+};
+
 /**
  * Middleware to check if user has required role
  * @param {string|Array} roles - Required role(s)
@@ -191,6 +209,7 @@ const canModifyCourse = async (req, res, next) => {
 };
 
 module.exports = {
+  authenticateAdmin,
   authenticate,
   authorize,
   requireAdmin,
