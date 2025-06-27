@@ -21,23 +21,14 @@ const handleValidationErrors = (req, res, next) => {
  * User registration validation
  */
 const validateUserRegistration = [
-  body('firstName')
+  body('name')
     .trim()
     .notEmpty()
-    .withMessage('First name is required')
-    .isLength({ max: 50 })
-    .withMessage('First name cannot exceed 50 characters')
+    .withMessage('Full name is required')
+    .isLength({ max: 100 })
+    .withMessage('Full name cannot exceed 100 characters')
     .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('First name can only contain letters and spaces'),
-  
-  body('lastName')
-    .trim()
-    .notEmpty()
-    .withMessage('Last name is required')
-    .isLength({ max: 50 })
-    .withMessage('Last name cannot exceed 50 characters')
-    .matches(/^[a-zA-Z\s]+$/)
-    .withMessage('Last name can only contain letters and spaces'),
+    .withMessage('Full name can only contain letters and spaces'),
   
   body('email')
     .trim()

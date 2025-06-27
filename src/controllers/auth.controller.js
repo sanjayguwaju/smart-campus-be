@@ -1,6 +1,7 @@
 const userService = require('../services/user.service');
 const ResponseHandler = require('../utils/responseHandler');
 const logger = require('../utils/logger');
+const { generateToken } = require('../utils/jwt');
 
 /**
  * Authentication Controller
@@ -15,8 +16,9 @@ class AuthController {
     try {
       const userData = req.body;
       const user = await userService.createUser(userData);
-
-      return ResponseHandler.success(res, 201, 'User registered successfully', user);
+      // Generate JWT token for the new user
+      const token = generateToken({ id: user._id, email: user.email, role: user.role });
+      return ResponseHandler.success(res, 201, 'User registered successfully', { user, token });
     } catch (error) {
       logger.error('Registration error:', error);
       return ResponseHandler.error(res, 400, error.message);
@@ -32,8 +34,8 @@ class AuthController {
     try {
       const { email, password } = req.body;
       const result = await userService.authenticateUser(email, password);
-
-      return ResponseHandler.success(res, 200, 'Login successful', result);
+      // Return user and token for frontend compatibility
+      return ResponseHandler.success(res, 200, 'Login successful', { user: result.user, token: result.accessToken });
     } catch (error) {
       logger.error('Login error:', error);
       return ResponseHandler.error(res, 401, error.message);

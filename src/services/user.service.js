@@ -28,7 +28,16 @@ class UserService {
       }
 
       // Create user
-      const user = new User(userData);
+      const user = new User({
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role,
+        studentId: userData.studentId,
+        facultyId: userData.facultyId,
+        department: userData.department,
+        phone: userData.phone
+      });
       await user.save();
 
       // Generate tokens

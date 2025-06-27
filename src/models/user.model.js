@@ -2,17 +2,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  firstName: {
+  name: {
     type: String,
-    required: [true, 'First name is required'],
+    required: [true, 'Full name is required'],
     trim: true,
-    maxlength: [50, 'First name cannot exceed 50 characters']
-  },
-  lastName: {
-    type: String,
-    required: [true, 'Last name is required'],
-    trim: true,
-    maxlength: [50, 'Last name cannot exceed 50 characters']
+    maxlength: [100, 'Full name cannot exceed 100 characters']
   },
   email: {
     type: String,
@@ -88,14 +82,9 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtual for full name
-userSchema.virtual('fullName').get(function() {
-  return `${this.firstName} ${this.lastName}`;
-});
-
 // Virtual for display name
 userSchema.virtual('displayName').get(function() {
-  return this.fullName;
+  return this.name;
 });
 
 // Index for better query performance
