@@ -67,7 +67,13 @@ const validateNotice = [
     .isISO8601()
     .withMessage('Invalid publish date format')
     .custom((value) => {
-      if (new Date(value) < new Date()) {
+      // Allow today as valid, only reject if before today
+      const inputDate = new Date(value);
+      const now = new Date();
+      // Set both to midnight for date-only comparison
+      inputDate.setHours(0,0,0,0);
+      now.setHours(0,0,0,0);
+      if (inputDate < now) {
         throw new Error('Publish date cannot be in the past');
       }
       return true;

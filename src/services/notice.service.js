@@ -1,6 +1,5 @@
 const Notice = require('../models/notice.model');
 const User = require('../models/user.model');
-const { createResponse } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 class NoticeService {
@@ -30,7 +29,7 @@ class NoticeService {
       const savedNotice = await notice.save();
       logger.info(`Notice created: ${savedNotice._id} by ${author.email}`);
       
-      return createResponse(true, 'Notice created successfully', savedNotice);
+      return { success: true, message: 'Notice created successfully', data: savedNotice };
     } catch (error) {
       logger.error('Error creating notice:', error);
       throw error;
@@ -120,10 +119,7 @@ class NoticeService {
 
       logger.info(`Retrieved ${notices.length} notices out of ${total}`);
       
-      return createResponse(true, 'Notices retrieved successfully', {
-        notices,
-        pagination
-      });
+      return { success: true, message: 'Notices retrieved successfully', data: { notices, pagination } };
     } catch (error) {
       logger.error('Error retrieving notices:', error);
       throw error;
@@ -145,7 +141,7 @@ class NoticeService {
         .lean();
 
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       // Increment view count if user is provided
@@ -157,7 +153,7 @@ class NoticeService {
 
       logger.info(`Notice retrieved: ${noticeId}`);
       
-      return createResponse(true, 'Notice retrieved successfully', notice);
+      return { success: true, message: 'Notice retrieved successfully', data: notice };
     } catch (error) {
       logger.error('Error retrieving notice:', error);
       throw error;
@@ -176,12 +172,12 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       // Check if user has permission to update
       if (notice.author.id.toString() !== user._id.toString() && user.role !== 'admin') {
-        return createResponse(false, 'Unauthorized to update this notice', null, 403);
+        return { success: false, message: 'Unauthorized to update this notice', data: null, status: 403 };
       }
 
       // Update metadata
@@ -198,7 +194,7 @@ class NoticeService {
 
       logger.info(`Notice updated: ${noticeId} by ${user.email}`);
       
-      return createResponse(true, 'Notice updated successfully', updatedNotice);
+      return { success: true, message: 'Notice updated successfully', data: updatedNotice };
     } catch (error) {
       logger.error('Error updating notice:', error);
       throw error;
@@ -216,19 +212,19 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       // Check if user has permission to delete
       if (notice.author.id.toString() !== user._id.toString() && user.role !== 'admin') {
-        return createResponse(false, 'Unauthorized to delete this notice', null, 403);
+        return { success: false, message: 'Unauthorized to delete this notice', data: null, status: 403 };
       }
 
       await Notice.findByIdAndDelete(noticeId);
       
       logger.info(`Notice deleted: ${noticeId} by ${user.email}`);
       
-      return createResponse(true, 'Notice deleted successfully');
+      return { success: true, message: 'Notice deleted successfully' };
     } catch (error) {
       logger.error('Error deleting notice:', error);
       throw error;
@@ -246,7 +242,7 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       await notice.toggleLike(userId);
@@ -255,10 +251,7 @@ class NoticeService {
       
       logger.info(`Notice like toggled: ${noticeId} by ${userId}`);
       
-      return createResponse(true, `Notice ${isLiked ? 'liked' : 'unliked'} successfully`, {
-        isLiked,
-        likeCount: notice.engagement.likes.length
-      });
+      return { success: true, message: `Notice ${isLiked ? 'liked' : 'unliked'} successfully`, data: { isLiked, likeCount: notice.engagement.likes.length } };
     } catch (error) {
       logger.error('Error toggling like:', error);
       throw error;
@@ -276,7 +269,7 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       await notice.toggleBookmark(userId);
@@ -285,10 +278,7 @@ class NoticeService {
       
       logger.info(`Notice bookmark toggled: ${noticeId} by ${userId}`);
       
-      return createResponse(true, `Notice ${isBookmarked ? 'bookmarked' : 'unbookmarked'} successfully`, {
-        isBookmarked,
-        bookmarkCount: notice.engagement.bookmarks.length
-      });
+      return { success: true, message: `Notice ${isBookmarked ? 'bookmarked' : 'unbookmarked'} successfully`, data: { isBookmarked, bookmarkCount: notice.engagement.bookmarks.length } };
     } catch (error) {
       logger.error('Error toggling bookmark:', error);
       throw error;
@@ -307,17 +297,17 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       // Check if comments are allowed
       if (!notice.settings.allowComments) {
-        return createResponse(false, 'Comments are not allowed on this notice', null, 403);
+        return { success: false, message: 'Comments are not allowed on this notice', data: null, status: 403 };
       }
 
       const user = await User.findById(userId);
       if (!user) {
-        return createResponse(false, 'User not found', null, 404);
+        return { success: false, message: 'User not found', data: null, status: 404 };
       }
 
       await notice.addComment(userId, `${user.firstName} ${user.lastName}`, content);
@@ -326,7 +316,7 @@ class NoticeService {
       
       logger.info(`Comment added to notice: ${noticeId} by ${user.email}`);
       
-      return createResponse(true, 'Comment added successfully', newComment);
+      return { success: true, message: 'Comment added successfully', data: newComment };
     } catch (error) {
       logger.error('Error adding comment:', error);
       throw error;
@@ -346,19 +336,19 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       const comment = notice.engagement.comments.id(commentId);
       if (!comment) {
-        return createResponse(false, 'Comment not found', null, 404);
+        return { success: false, message: 'Comment not found', data: null, status: 404 };
       }
 
       // Check if user owns the comment or is admin
       if (comment.userId.toString() !== userId) {
         const user = await User.findById(userId);
         if (!user || user.role !== 'admin') {
-          return createResponse(false, 'Unauthorized to update this comment', null, 403);
+          return { success: false, message: 'Unauthorized to update this comment', data: null, status: 403 };
         }
       }
 
@@ -368,7 +358,7 @@ class NoticeService {
       
       logger.info(`Comment updated: ${commentId} on notice ${noticeId}`);
       
-      return createResponse(true, 'Comment updated successfully', updatedComment);
+      return { success: true, message: 'Comment updated successfully', data: updatedComment };
     } catch (error) {
       logger.error('Error updating comment:', error);
       throw error;
@@ -387,19 +377,19 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       const comment = notice.engagement.comments.id(commentId);
       if (!comment) {
-        return createResponse(false, 'Comment not found', null, 404);
+        return { success: false, message: 'Comment not found', data: null, status: 404 };
       }
 
       // Check if user owns the comment or is admin
       if (comment.userId.toString() !== userId) {
         const user = await User.findById(userId);
         if (!user || user.role !== 'admin') {
-          return createResponse(false, 'Unauthorized to delete this comment', null, 403);
+          return { success: false, message: 'Unauthorized to delete this comment', data: null, status: 403 };
         }
       }
 
@@ -407,7 +397,7 @@ class NoticeService {
       
       logger.info(`Comment deleted: ${commentId} from notice ${noticeId}`);
       
-      return createResponse(true, 'Comment deleted successfully');
+      return { success: true, message: 'Comment deleted successfully' };
     } catch (error) {
       logger.error('Error deleting comment:', error);
       throw error;
@@ -426,7 +416,7 @@ class NoticeService {
 
       logger.info(`Retrieved ${notices.length} urgent notices`);
       
-      return createResponse(true, 'Urgent notices retrieved successfully', notices);
+      return { success: true, message: 'Urgent notices retrieved successfully', data: notices };
     } catch (error) {
       logger.error('Error retrieving urgent notices:', error);
       throw error;
@@ -445,7 +435,7 @@ class NoticeService {
 
       logger.info(`Retrieved ${notices.length} featured notices`);
       
-      return createResponse(true, 'Featured notices retrieved successfully', notices);
+      return { success: true, message: 'Featured notices retrieved successfully', data: notices };
     } catch (error) {
       logger.error('Error retrieving featured notices:', error);
       throw error;
@@ -466,7 +456,7 @@ class NoticeService {
 
       logger.info(`Search completed for term: "${searchTerm}" - found ${notices.length} results`);
       
-      return createResponse(true, 'Search completed successfully', notices);
+      return { success: true, message: 'Search completed successfully', data: notices };
     } catch (error) {
       logger.error('Error searching notices:', error);
       throw error;
@@ -504,7 +494,7 @@ class NoticeService {
 
       logger.info(`Retrieved ${notices.length} bookmarked notices for user ${userId}`);
       
-      return createResponse(true, 'Bookmarked notices retrieved successfully', {
+      return { success: true, message: 'Bookmarked notices retrieved successfully', data: {
         notices,
         pagination: {
           page: parseInt(page),
@@ -512,7 +502,7 @@ class NoticeService {
           total,
           totalPages
         }
-      });
+      } };
     } catch (error) {
       logger.error('Error retrieving bookmarked notices:', error);
       throw error;
@@ -530,7 +520,7 @@ class NoticeService {
       const notice = await Notice.findById(noticeId);
       
       if (!notice) {
-        return createResponse(false, 'Notice not found', null, 404);
+        return { success: false, message: 'Notice not found', data: null, status: 404 };
       }
 
       const statistics = {
@@ -548,7 +538,7 @@ class NoticeService {
 
       logger.info(`Statistics retrieved for notice: ${noticeId}`);
       
-      return createResponse(true, 'Statistics retrieved successfully', statistics);
+      return { success: true, message: 'Statistics retrieved successfully', data: statistics };
     } catch (error) {
       logger.error('Error retrieving notice statistics:', error);
       throw error;
@@ -593,7 +583,7 @@ class NoticeService {
           message = 'notices unfeatured';
           break;
         default:
-          return createResponse(false, 'Invalid action', null, 400);
+          return { success: false, message: 'Invalid action', data: null, status: 400 };
       }
 
       // Add metadata
@@ -608,9 +598,7 @@ class NoticeService {
 
       logger.info(`Bulk operation ${action} performed on ${result.modifiedCount} notices by ${user.email}`);
       
-      return createResponse(true, `${result.modifiedCount} ${message} successfully`, {
-        modifiedCount: result.modifiedCount
-      });
+      return { success: true, message: `${result.modifiedCount} ${message} successfully`, data: { modifiedCount: result.modifiedCount } };
     } catch (error) {
       logger.error('Error performing bulk operation:', error);
       throw error;

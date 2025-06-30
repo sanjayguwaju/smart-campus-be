@@ -1,5 +1,4 @@
 const noticeService = require('../services/notice.service');
-const { createResponse } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 /**
@@ -159,7 +158,7 @@ const createNotice = async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     logger.error('Error in createNotice controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -257,7 +256,7 @@ const getAllNotices = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in getAllNotices controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -291,7 +290,7 @@ const getNoticeById = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in getNoticeById controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -365,7 +364,7 @@ const updateNotice = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in updateNotice controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -405,7 +404,7 @@ const deleteNotice = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in deleteNotice controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -443,7 +442,7 @@ const toggleLike = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in toggleLike controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -481,7 +480,7 @@ const toggleBookmark = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in toggleBookmark controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -534,7 +533,7 @@ const addComment = async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     logger.error('Error in addComment controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -598,7 +597,7 @@ const updateComment = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in updateComment controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -648,7 +647,7 @@ const deleteComment = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in deleteComment controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -668,7 +667,7 @@ const getUrgentNotices = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in getUrgentNotices controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -688,7 +687,7 @@ const getFeaturedNotices = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in getFeaturedNotices controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -724,14 +723,14 @@ const searchNotices = async (req, res) => {
     const { q: searchTerm, type, category } = req.query;
     
     if (!searchTerm) {
-      return res.status(400).json(createResponse(false, 'Search term is required'));
+      return res.status(400).json({ success: false, message: 'Search term is required' });
     }
     
     const result = await noticeService.searchNotices(searchTerm, { type, category });
     res.json(result);
   } catch (error) {
     logger.error('Error in searchNotices controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -768,7 +767,7 @@ const getBookmarkedNotices = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in getBookmarkedNotices controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -820,7 +819,7 @@ const getNoticeStatistics = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in getNoticeStatistics controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
@@ -873,7 +872,7 @@ const bulkOperation = async (req, res) => {
     res.json(result);
   } catch (error) {
     logger.error('Error in bulkOperation controller:', error);
-    res.status(500).json(createResponse(false, 'Internal server error'));
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
