@@ -65,11 +65,13 @@ class EventService {
       } = pagination;
 
       // Build filter object
-      const filter = {};
+      let filter = {};
+      let useTextSearch = false;
 
       // Search filter
       if (search) {
         filter.$text = { $search: search };
+        useTextSearch = true;
       }
 
       // Type and category filters
@@ -93,18 +95,53 @@ class EventService {
       const skip = (page - 1) * limit;
       const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
-      // Execute query
-      const [events, total] = await Promise.all([
-        Event.find(filter)
-          .populate('organizer', 'firstName lastName email avatar')
-          .populate('coOrganizers', 'firstName lastName email avatar')
-          .populate('attendees.user', 'firstName lastName email avatar')
-          .sort(sort)
-          .skip(skip)
-          .limit(parseInt(limit))
-          .lean(),
-        Event.countDocuments(filter)
-      ]);
+      let events = [];
+      let total = 0;
+
+      if (useTextSearch) {
+        [events, total] = await Promise.all([
+          Event.find(filter)
+            .populate('organizer', 'firstName lastName email avatar')
+            .populate('coOrganizers', 'firstName lastName email avatar')
+            .populate('attendees.user', 'firstName lastName email avatar')
+            .sort(sort)
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean(),
+          Event.countDocuments(filter)
+        ]);
+        // If no results, fallback to regex search
+        if (events.length === 0) {
+          delete filter.$text;
+          filter.$or = [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+          ];
+          [events, total] = await Promise.all([
+            Event.find(filter)
+              .populate('organizer', 'firstName lastName email avatar')
+              .populate('coOrganizers', 'firstName lastName email avatar')
+              .populate('attendees.user', 'firstName lastName email avatar')
+              .sort(sort)
+              .skip(skip)
+              .limit(parseInt(limit))
+              .lean(),
+            Event.countDocuments(filter)
+          ]);
+        }
+      } else {
+        [events, total] = await Promise.all([
+          Event.find(filter)
+            .populate('organizer', 'firstName lastName email avatar')
+            .populate('coOrganizers', 'firstName lastName email avatar')
+            .populate('attendees.user', 'firstName lastName email avatar')
+            .sort(sort)
+            .skip(skip)
+            .limit(parseInt(limit))
+            .lean(),
+          Event.countDocuments(filter)
+        ]);
+      }
 
       const totalPages = Math.ceil(total / limit);
 
