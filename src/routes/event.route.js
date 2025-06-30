@@ -320,13 +320,13 @@ router.get('/all', eventController.getAllEvents);
 
 /**
  * @swagger
- * /api/events/{id}:
+ * /api/events/{eventId}:
  *   get:
  *     summary: Get event by ID
  *     tags: [Events]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -346,7 +346,7 @@ router.get('/all', eventController.getAllEvents);
  *       404:
  *         description: Event not found
  */
-router.get('/:id', eventController.getEventById);
+router.get('/:eventId', eventController.getEventById);
 
 /**
  * @swagger
@@ -436,7 +436,7 @@ router.post('/', authMiddleware.authenticate, authMiddleware.authorize(['admin',
 
 /**
  * @swagger
- * /api/events/{id}:
+ * /api/events/{eventId}:
  *   put:
  *     summary: Update event by ID
  *     tags: [Events]
@@ -444,7 +444,7 @@ router.post('/', authMiddleware.authenticate, authMiddleware.authorize(['admin',
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -519,11 +519,11 @@ router.post('/', authMiddleware.authenticate, authMiddleware.authorize(['admin',
  *       404:
  *         description: Event not found
  */
-router.put('/:id', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), validateEventUpdate, eventController.updateEvent);
+router.put('/:eventId', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), validateEventUpdate, eventController.updateEvent);
 
 /**
  * @swagger
- * /api/events/{id}:
+ * /api/events/{eventId}:
  *   delete:
  *     summary: Delete event by ID
  *     tags: [Events]
@@ -531,7 +531,7 @@ router.put('/:id', authMiddleware.authenticate, authMiddleware.authorize(['admin
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -555,11 +555,11 @@ router.put('/:id', authMiddleware.authenticate, authMiddleware.authorize(['admin
  *       404:
  *         description: Event not found
  */
-router.delete('/:id', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.deleteEvent);
+router.delete('/:eventId', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.deleteEvent);
 
 /**
  * @swagger
- * /api/events/{id}/register:
+ * /api/events/{eventId}/register:
  *   post:
  *     summary: Register for an event
  *     tags: [Events]
@@ -567,7 +567,7 @@ router.delete('/:id', authMiddleware.authenticate, authMiddleware.authorize(['ad
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -614,11 +614,11 @@ router.delete('/:id', authMiddleware.authenticate, authMiddleware.authorize(['ad
  *       409:
  *         description: Already registered or event full
  */
-router.post('/:id/register', authMiddleware.authenticate, validateEventRegistration, eventController.registerForEvent);
+router.post('/:eventId/register', authMiddleware.authenticate, validateEventRegistration, eventController.registerForEvent);
 
 /**
  * @swagger
- * /api/events/{id}/unregister:
+ * /api/events/{eventId}/unregister:
  *   delete:
  *     summary: Unregister from an event
  *     tags: [Events]
@@ -626,7 +626,7 @@ router.post('/:id/register', authMiddleware.authenticate, validateEventRegistrat
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -648,11 +648,11 @@ router.post('/:id/register', authMiddleware.authenticate, validateEventRegistrat
  *       404:
  *         description: Event not found or not registered
  */
-router.delete('/:id/unregister', authMiddleware.authenticate, eventController.unregisterFromEvent);
+router.delete('/:eventId/unregister', authMiddleware.authenticate, eventController.unregisterFromEvent);
 
 /**
  * @swagger
- * /api/events/{id}/attendees:
+ * /api/events/{eventId}/attendees:
  *   get:
  *     summary: Get event attendees
  *     tags: [Events]
@@ -660,7 +660,7 @@ router.delete('/:id/unregister', authMiddleware.authenticate, eventController.un
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -704,11 +704,11 @@ router.delete('/:id/unregister', authMiddleware.authenticate, eventController.un
  *       404:
  *         description: Event not found
  */
-router.get('/:id/attendees', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.getEventAttendees);
+router.get('/:eventId/attendees', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.getEventAttendees);
 
 /**
  * @swagger
- * /api/events/{id}/mark-attendance:
+ * /api/events/{eventId}/mark-attendance:
  *   post:
  *     summary: Mark attendance for an event
  *     tags: [Events]
@@ -716,7 +716,7 @@ router.get('/:id/attendees', authMiddleware.authenticate, authMiddleware.authori
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -761,17 +761,17 @@ router.get('/:id/attendees', authMiddleware.authenticate, authMiddleware.authori
  *       404:
  *         description: Event not found
  */
-router.post('/:id/mark-attendance', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.markAttendance);
+router.post('/:eventId/mark-attendance', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.markAttendance);
 
 /**
  * @swagger
- * /api/events/{id}/reviews:
+ * /api/events/{eventId}/reviews:
  *   get:
  *     summary: Get event reviews
  *     tags: [Events]
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -819,11 +819,11 @@ router.post('/:id/mark-attendance', authMiddleware.authenticate, authMiddleware.
  *       404:
  *         description: Event not found
  */
-router.get('/:id/reviews', eventController.getEventReviews);
+router.get('/:eventId/reviews', eventController.getEventReviews);
 
 /**
  * @swagger
- * /api/events/{id}/reviews:
+ * /api/events/{eventId}/reviews:
  *   post:
  *     summary: Add a review to an event
  *     tags: [Events]
@@ -831,7 +831,7 @@ router.get('/:id/reviews', eventController.getEventReviews);
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -884,7 +884,7 @@ router.get('/:id/reviews', eventController.getEventReviews);
  *       409:
  *         description: Already reviewed this event
  */
-router.post('/:id/reviews', authMiddleware.authenticate, eventController.addEventReview);
+router.post('/:eventId/reviews', authMiddleware.authenticate, eventController.addEventReview);
 
 /**
  * @swagger
@@ -989,7 +989,7 @@ router.get('/search/my-events', authMiddleware.authenticate, eventController.get
 
 /**
  * @swagger
- * /api/events/{id}/statistics:
+ * /api/events/{eventId}/statistics:
  *   get:
  *     summary: Get event statistics
  *     tags: [Events]
@@ -997,7 +997,7 @@ router.get('/search/my-events', authMiddleware.authenticate, eventController.get
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: eventId
  *         required: true
  *         schema:
  *           type: string
@@ -1042,6 +1042,6 @@ router.get('/search/my-events', authMiddleware.authenticate, eventController.get
  *       404:
  *         description: Event not found
  */
-router.get('/:id/statistics', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.getEventStatistics);
+router.get('/:eventId/statistics', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.getEventStatistics);
 
 module.exports = router; 

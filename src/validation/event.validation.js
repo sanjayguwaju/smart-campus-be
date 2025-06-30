@@ -280,7 +280,7 @@ const validateCreateEvent = [
 
 // Event update validation
 const validateUpdateEvent = [
-  param('id')
+  param('eventId')
     .isMongoId()
     .withMessage('Invalid event ID'),
   

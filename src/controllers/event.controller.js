@@ -1,5 +1,5 @@
 const eventService = require('../services/event.service');
-const { successResponse, errorResponse } = require('../utils/responseHandler');
+const ResponseHandler = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 /**
@@ -126,10 +126,10 @@ class EventController {
       const event = await eventService.createEvent(eventData, userId);
 
       logger.info(`Event created successfully: ${event._id}`);
-      return successResponse(res, 'Event created successfully', event, 201);
+      return ResponseHandler.success(res, 201, 'Event created successfully', event);
     } catch (error) {
       logger.error('Error in createEvent controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      return ResponseHandler.error(res, error.statusCode || 500, error.message);
     }
   }
 
@@ -219,14 +219,30 @@ class EventController {
    */
   async getEvents(req, res) {
     try {
-      const query = req.query;
-      const result = await eventService.getEvents(query);
+      const filters = {
+        search: req.query.search,
+        eventType: req.query.eventType,
+        category: req.query.category,
+        status: req.query.status,
+        featured: req.query.featured === 'true' ? true : req.query.featured === 'false' ? false : undefined,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        organizer: req.query.organizer
+      };
 
-      logger.info(`Events retrieved successfully. Total: ${result.pagination.total}`);
-      return successResponse(res, 'Events retrieved successfully', result);
+      const pagination = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10,
+        sortBy: req.query.sortBy || 'startDate',
+        sortOrder: req.query.sortOrder || 'asc'
+      };
+
+      const result = await eventService.getEvents(filters, pagination);
+
+      return ResponseHandler.success(res, 200, 'Events retrieved successfully', result);
     } catch (error) {
-      logger.error('Error in getEvents controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get events error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve events');
     }
   }
 
@@ -280,14 +296,12 @@ class EventController {
    */
   async getAllEvents(req, res) {
     try {
-      const query = req.query;
-      const events = await eventService.getAllEvents(query);
+      const events = await eventService.getAllEvents();
 
-      logger.info(`All events retrieved successfully. Count: ${events.length}`);
-      return successResponse(res, 'All events retrieved successfully', events);
+      return ResponseHandler.success(res, 200, 'All events retrieved successfully', events);
     } catch (error) {
-      logger.error('Error in getAllEvents controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get all events error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve events');
     }
   }
 
@@ -313,16 +327,16 @@ class EventController {
    */
   async getEventById(req, res) {
     try {
-      const { id } = req.params;
-      const userId = req.user?.id;
+      const { eventId } = req.params;
+      const event = await eventService.getEventById(eventId);
 
-      const event = await eventService.getEventById(id, userId);
-
-      logger.info(`Event retrieved successfully: ${id}`);
-      return successResponse(res, 'Event retrieved successfully', event);
+      return ResponseHandler.success(res, 200, 'Event retrieved successfully', event);
     } catch (error) {
-      logger.error('Error in getEventById controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get event by ID error:', error);
+      if (error.message === 'Event not found') {
+        return ResponseHandler.notFound(res, 'Event not found');
+      }
+      return ResponseHandler.error(res, 500, 'Failed to retrieve event');
     }
   }
 
@@ -362,17 +376,19 @@ class EventController {
    */
   async updateEvent(req, res) {
     try {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const updateData = req.body;
       const userId = req.user.id;
 
-      const event = await eventService.updateEvent(id, updateData, userId);
+      const event = await eventService.updateEvent(eventId, updateData, userId);
 
-      logger.info(`Event updated successfully: ${id}`);
-      return successResponse(res, 'Event updated successfully', event);
+      return ResponseHandler.success(res, 200, 'Event updated successfully', event);
     } catch (error) {
-      logger.error('Error in updateEvent controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Update event error:', error);
+      if (error.message === 'Event not found') {
+        return ResponseHandler.notFound(res, 'Event not found');
+      }
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -404,16 +420,18 @@ class EventController {
    */
   async deleteEvent(req, res) {
     try {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const userId = req.user.id;
 
-      const result = await eventService.deleteEvent(id, userId);
+      const result = await eventService.deleteEvent(eventId, userId);
 
-      logger.info(`Event deleted successfully: ${id}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 200, result.message, result);
     } catch (error) {
-      logger.error('Error in deleteEvent controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Delete event error:', error);
+      if (error.message === 'Event not found') {
+        return ResponseHandler.notFound(res, 'Event not found');
+      }
+      return ResponseHandler.error(res, 500, 'Failed to delete event');
     }
   }
 
@@ -445,16 +463,15 @@ class EventController {
    */
   async registerForEvent(req, res) {
     try {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const userId = req.user.id;
 
-      const result = await eventService.registerForEvent(id, userId);
+      const result = await eventService.registerForEvent(eventId, userId);
 
-      logger.info(`User ${userId} registered for event ${id}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 200, result.message, result);
     } catch (error) {
-      logger.error('Error in registerForEvent controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Register for event error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -486,16 +503,15 @@ class EventController {
    */
   async cancelRegistration(req, res) {
     try {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const userId = req.user.id;
 
-      const result = await eventService.cancelRegistration(id, userId);
+      const result = await eventService.cancelRegistration(eventId, userId);
 
-      logger.info(`User ${userId} cancelled registration for event ${id}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 200, result.message, result);
     } catch (error) {
-      logger.error('Error in cancelRegistration controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Cancel registration error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -541,17 +557,16 @@ class EventController {
    */
   async markAttended(req, res) {
     try {
-      const { id } = req.params;
-      const { userId } = req.body;
-      const adminUserId = req.user.id;
+      const { eventId } = req.params;
+      const { attendeeId } = req.body;
+      const userId = req.user.id;
 
-      const result = await eventService.markAttended(id, userId, adminUserId);
+      const result = await eventService.markAttended(eventId, attendeeId, userId);
 
-      logger.info(`User ${userId} marked as attended for event ${id} by admin ${adminUserId}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 200, result.message, result);
     } catch (error) {
-      logger.error('Error in markAttended controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Mark attended error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -599,17 +614,16 @@ class EventController {
    */
   async addReview(req, res) {
     try {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const reviewData = req.body;
       const userId = req.user.id;
 
-      const result = await eventService.addReview(id, userId, reviewData);
+      const result = await eventService.addReview(eventId, reviewData, userId);
 
-      logger.info(`Review added to event ${id} by user ${userId}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 201, result.message, result);
     } catch (error) {
-      logger.error('Error in addReview controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Add review error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -633,14 +647,13 @@ class EventController {
    */
   async getUpcomingEvents(req, res) {
     try {
-      const { limit = 10 } = req.query;
-      const events = await eventService.getUpcomingEvents(parseInt(limit));
+      const limit = parseInt(req.query.limit) || 10;
+      const events = await eventService.getUpcomingEvents(limit);
 
-      logger.info(`Upcoming events retrieved successfully. Count: ${events.length}`);
-      return successResponse(res, 'Upcoming events retrieved successfully', events);
+      return ResponseHandler.success(res, 200, 'Upcoming events retrieved successfully', events);
     } catch (error) {
-      logger.error('Error in getUpcomingEvents controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get upcoming events error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve upcoming events');
     }
   }
 
@@ -664,14 +677,13 @@ class EventController {
    */
   async getFeaturedEvents(req, res) {
     try {
-      const { limit = 5 } = req.query;
-      const events = await eventService.getFeaturedEvents(parseInt(limit));
+      const limit = parseInt(req.query.limit) || 10;
+      const events = await eventService.getFeaturedEvents(limit);
 
-      logger.info(`Featured events retrieved successfully. Count: ${events.length}`);
-      return successResponse(res, 'Featured events retrieved successfully', events);
+      return ResponseHandler.success(res, 200, 'Featured events retrieved successfully', events);
     } catch (error) {
-      logger.error('Error in getFeaturedEvents controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get featured events error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve featured events');
     }
   }
 
@@ -715,15 +727,17 @@ class EventController {
   async getEventsByOrganizer(req, res) {
     try {
       const { organizerId } = req.params;
-      const query = req.query;
+      const filters = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10
+      };
 
-      const result = await eventService.getEventsByOrganizer(organizerId, query);
+      const result = await eventService.getEventsByOrganizer(organizerId, filters);
 
-      logger.info(`Events by organizer retrieved successfully. Organizer: ${organizerId}, Total: ${result.pagination.total}`);
-      return successResponse(res, 'Events by organizer retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'Events by organizer retrieved successfully', result);
     } catch (error) {
-      logger.error('Error in getEventsByOrganizer controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get events by organizer error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve events by organizer');
     }
   }
 
@@ -764,15 +778,17 @@ class EventController {
   async getUserRegisteredEvents(req, res) {
     try {
       const userId = req.user.id;
-      const query = req.query;
+      const filters = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10
+      };
 
-      const result = await eventService.getUserRegisteredEvents(userId, query);
+      const result = await eventService.getUserRegisteredEvents(userId, filters);
 
-      logger.info(`User's registered events retrieved successfully. User: ${userId}, Total: ${result.pagination.total}`);
-      return successResponse(res, 'User\'s registered events retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'User\'s registered events retrieved successfully', result);
     } catch (error) {
-      logger.error('Error in getUserRegisteredEvents controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get user registered events error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve user\'s registered events');
     }
   }
 
@@ -798,15 +814,12 @@ class EventController {
    */
   async getEventStatistics(req, res) {
     try {
-      const { id } = req.params;
+      const statistics = await eventService.getEventStatistics();
 
-      const statistics = await eventService.getEventStatistics(id);
-
-      logger.info(`Event statistics retrieved successfully: ${id}`);
-      return successResponse(res, 'Event statistics retrieved successfully', statistics);
+      return ResponseHandler.success(res, 200, 'Event statistics retrieved successfully', statistics);
     } catch (error) {
-      logger.error('Error in getEventStatistics controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get event statistics error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve event statistics');
     }
   }
 
@@ -854,19 +867,18 @@ class EventController {
    */
   async searchEvents(req, res) {
     try {
-      const { q: searchQuery, ...query } = req.query;
+      const { query } = req.query;
+      const filters = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10
+      };
 
-      if (!searchQuery) {
-        return errorResponse(res, 'Search query is required', 400);
-      }
+      const result = await eventService.searchEvents(query, filters);
 
-      const result = await eventService.searchEvents(searchQuery, query);
-
-      logger.info(`Event search completed. Query: "${searchQuery}", Results: ${result.pagination.total}`);
-      return successResponse(res, 'Search results retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'Search results retrieved successfully', result);
     } catch (error) {
-      logger.error('Error in searchEvents controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Search events error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to search events');
     }
   }
 
@@ -898,16 +910,15 @@ class EventController {
    */
   async unregisterFromEvent(req, res) {
     try {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const userId = req.user.id;
 
-      const result = await eventService.cancelRegistration(id, userId);
+      const result = await eventService.unregisterFromEvent(eventId, userId);
 
-      logger.info(`User ${userId} unregistered from event ${id}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 200, result.message, result);
     } catch (error) {
-      logger.error('Error in unregisterFromEvent controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Unregister from event error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -953,17 +964,16 @@ class EventController {
    */
   async markAttendance(req, res) {
     try {
-      const { id } = req.params;
-      const { userId } = req.body;
-      const adminUserId = req.user.id;
+      const { eventId } = req.params;
+      const { attendeeId, status } = req.body;
+      const userId = req.user.id;
 
-      const result = await eventService.markAttended(id, userId, adminUserId);
+      const result = await eventService.markAttendance(eventId, attendeeId, status, userId);
 
-      logger.info(`User ${userId} marked as attended for event ${id} by admin ${adminUserId}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 200, result.message, result);
     } catch (error) {
-      logger.error('Error in markAttendance controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Mark attendance error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -1001,16 +1011,19 @@ class EventController {
    */
   async getEventAttendees(req, res) {
     try {
-      const { id } = req.params;
-      const { status } = req.query;
+      const { eventId } = req.params;
+      const filters = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10,
+        status: req.query.status
+      };
 
-      const attendees = await eventService.getEventAttendees(id, status);
+      const attendees = await eventService.getEventAttendees(eventId, filters);
 
-      logger.info(`Event attendees retrieved successfully: ${id}`);
-      return successResponse(res, 'Event attendees retrieved successfully', attendees);
+      return ResponseHandler.success(res, 200, 'Event attendees retrieved successfully', attendees);
     } catch (error) {
-      logger.error('Error in getEventAttendees controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get event attendees error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve event attendees');
     }
   }
 
@@ -1049,16 +1062,18 @@ class EventController {
    */
   async getEventReviews(req, res) {
     try {
-      const { id } = req.params;
-      const query = req.query;
+      const { eventId } = req.params;
+      const filters = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10
+      };
 
-      const result = await eventService.getEventReviews(id, query);
+      const result = await eventService.getEventReviews(eventId, filters);
 
-      logger.info(`Event reviews retrieved successfully: ${id}`);
-      return successResponse(res, 'Event reviews retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'Event reviews retrieved successfully', result);
     } catch (error) {
-      logger.error('Error in getEventReviews controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get event reviews error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve event reviews');
     }
   }
 
@@ -1106,17 +1121,16 @@ class EventController {
    */
   async addEventReview(req, res) {
     try {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const reviewData = req.body;
       const userId = req.user.id;
 
-      const result = await eventService.addReview(id, userId, reviewData);
+      const result = await eventService.addEventReview(eventId, reviewData, userId);
 
-      logger.info(`Review added to event ${id} by user ${userId}`);
-      return successResponse(res, result.message, result);
+      return ResponseHandler.success(res, 201, result.message, result);
     } catch (error) {
-      logger.error('Error in addEventReview controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Add event review error:', error);
+      return ResponseHandler.error(res, 400, error.message);
     }
   }
 
@@ -1164,15 +1178,18 @@ class EventController {
   async getMyEvents(req, res) {
     try {
       const userId = req.user.id;
-      const query = req.query;
+      const filters = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10,
+        type: req.query.type // 'organized' or 'registered'
+      };
 
-      const result = await eventService.getMyEvents(userId, query);
+      const result = await eventService.getMyEvents(userId, filters);
 
-      logger.info(`User's events retrieved successfully. User: ${userId}, Total: ${result.pagination.total}`);
-      return successResponse(res, 'User\'s events retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'User\'s events retrieved successfully', result);
     } catch (error) {
-      logger.error('Error in getMyEvents controller:', error);
-      return errorResponse(res, error.message, error.statusCode || 500);
+      logger.error('Get my events error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve user\'s events');
     }
   }
 }

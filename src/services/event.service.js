@@ -1,7 +1,7 @@
 const Event = require('../models/event.model');
 const User = require('../models/user.model');
 const logger = require('../utils/logger');
-const { createError } = require('../utils/responseHandler');
+const createError = require('../utils/createError');
 
 class EventService {
   /**
@@ -43,11 +43,9 @@ class EventService {
   /**
    * Get all events with filtering and pagination
    */
-  async getEvents(query = {}) {
+  async getEvents(filters = {}, pagination = {}) {
     try {
       const {
-        page = 1,
-        limit = 10,
         search,
         eventType,
         category,
@@ -56,10 +54,15 @@ class EventService {
         featured,
         startDate,
         endDate,
-        organizer,
+        organizer
+      } = filters;
+
+      const {
+        page = 1,
+        limit = 10,
         sortBy = 'startDate',
         sortOrder = 'asc'
-      } = query;
+      } = pagination;
 
       // Build filter object
       const filter = {};
@@ -111,7 +114,7 @@ class EventService {
           page: parseInt(page),
           limit: parseInt(limit),
           total,
-          totalPages,
+          pages: totalPages,
           hasNext: page < totalPages,
           hasPrev: page > 1
         }
@@ -227,8 +230,14 @@ class EventService {
         throw createError('Event not found', 404);
       }
 
-      // Check if user has permission to update
-      if (event.createdBy.toString() !== userId && event.organizer.toString() !== userId) {
+      // Fetch the user to check role
+      const user = await User.findById(userId);
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      // Only allow the organizer or an admin to update
+      if (event.organizer.toString() !== userId && user.role !== 'admin') {
         throw createError('Unauthorized to update this event', 403);
       }
 
@@ -279,8 +288,14 @@ class EventService {
         throw createError('Event not found', 404);
       }
 
-      // Check if user has permission to delete
-      if (event.createdBy.toString() !== userId) {
+      // Fetch the user to check role
+      const user = await User.findById(userId);
+      if (!user) {
+        throw createError('User not found', 404);
+      }
+
+      // Only allow the organizer or an admin to delete
+      if (event.organizer.toString() !== userId && user.role !== 'admin') {
         throw createError('Unauthorized to delete this event', 403);
       }
 
@@ -702,6 +717,144 @@ class EventService {
       };
     } catch (error) {
       logger.error('Error fetching event reviews:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unregister from event
+   */
+  async unregisterFromEvent(eventId, userId) {
+    try {
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      // Check if user is registered
+      const attendeeIndex = event.attendees.findIndex(
+        attendee => attendee.user.toString() === userId
+      );
+
+      if (attendeeIndex === -1) {
+        throw createError('You are not registered for this event', 400);
+      }
+
+      // Remove from attendees
+      event.attendees.splice(attendeeIndex, 1);
+      event.currentAttendees = event.attendees.length;
+      event.updatedBy = userId;
+
+      await event.save();
+
+      logger.info(`User ${userId} unregistered from event ${eventId}`);
+      return {
+        message: 'Successfully unregistered from event',
+        eventId,
+        userId
+      };
+    } catch (error) {
+      logger.error('Error unregistering from event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark attendance for an attendee
+   */
+  async markAttendance(eventId, attendeeId, status, userId) {
+    try {
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      // Check if user has permission (admin, faculty, or organizer)
+      const user = await User.findById(userId);
+      if (!user || !['admin', 'faculty'].includes(user.role)) {
+        // Check if user is the organizer
+        if (event.organizer.toString() !== userId) {
+          throw createError('You do not have permission to mark attendance', 403);
+        }
+      }
+
+      // Find the attendee
+      const attendee = event.attendees.find(
+        a => a.user.toString() === attendeeId
+      );
+
+      if (!attendee) {
+        throw createError('Attendee not found', 404);
+      }
+
+      // Update attendance status
+      attendee.status = status;
+      event.updatedBy = userId;
+
+      await event.save();
+
+      logger.info(`Attendance marked for user ${attendeeId} in event ${eventId} by ${userId}`);
+      return {
+        message: `Attendance marked as ${status}`,
+        eventId,
+        attendeeId,
+        status
+      };
+    } catch (error) {
+      logger.error('Error marking attendance:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add event review
+   */
+  async addEventReview(eventId, reviewData, userId) {
+    try {
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      // Check if user attended the event
+      const attendee = event.attendees.find(
+        a => a.user.toString() === userId && a.status === 'attended'
+      );
+
+      if (!attendee) {
+        throw createError('You must attend the event to leave a review', 400);
+      }
+
+      // Check if user already reviewed
+      const existingReview = event.reviews.find(
+        r => r.user.toString() === userId
+      );
+
+      if (existingReview) {
+        throw createError('You have already reviewed this event', 400);
+      }
+
+      // Add review
+      const review = {
+        user: userId,
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+        createdAt: new Date()
+      };
+
+      event.reviews.push(review);
+      event.updatedBy = userId;
+
+      await event.save();
+
+      logger.info(`Review added to event ${eventId} by user ${userId}`);
+      return {
+        message: 'Review added successfully',
+        eventId,
+        review
+      };
+    } catch (error) {
+      logger.error('Error adding event review:', error);
       throw error;
     }
   }
