@@ -18,6 +18,7 @@ const courseRoutes = require('./src/routes/course.route');
 const authRoutes = require('./src/routes/auth.route');
 const eventRoutes = require('./src/routes/event.route');
 const noticeRoutes = require('./src/routes/notice.route');
+const programRoutes = require('./src/routes/program.route');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -119,6 +120,7 @@ app.use(`/api/${API_VERSION}/users`, userRoutes);
 app.use(`/api/${API_VERSION}/courses`, courseRoutes);
 app.use(`/api/${API_VERSION}/events`, eventRoutes);
 app.use(`/api/${API_VERSION}/notices`, noticeRoutes);
+app.use(`/api/${API_VERSION}/programs`, programRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
