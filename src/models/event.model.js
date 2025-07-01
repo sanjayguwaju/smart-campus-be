@@ -121,6 +121,10 @@ const eventSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    public_id: {
+      type: String,
+      required: true
+    },
     caption: {
       type: String,
       trim: true
@@ -128,6 +132,18 @@ const eventSchema = new mongoose.Schema({
     isPrimary: {
       type: Boolean,
       default: false
+    },
+    width: {
+      type: Number
+    },
+    height: {
+      type: Number
+    },
+    format: {
+      type: String
+    },
+    size: {
+      type: Number
     }
   }],
   attachments: [{

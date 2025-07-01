@@ -2,6 +2,7 @@ const Event = require('../models/event.model');
 const User = require('../models/user.model');
 const logger = require('../utils/logger');
 const createError = require('../utils/createError');
+const { uploadImage, deleteImage, updateImage } = require('../config/cloudinary.config');
 
 class EventService {
   /**
@@ -960,6 +961,191 @@ class EventService {
       };
     } catch (error) {
       logger.error('Error fetching user events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload image for event
+   */
+  async uploadEventImage(eventId, file, userId, options = {}) {
+    try {
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      // Check if user has permission (admin, faculty, or organizer)
+      const user = await User.findById(userId);
+      if (!user || !['admin', 'faculty'].includes(user.role)) {
+        // Check if user is the organizer or creator
+        if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
+          throw createError('You do not have permission to upload images for this event', 403);
+        }
+      }
+
+      // Upload image to Cloudinary
+      const cloudinaryResult = await uploadImage(file, {
+        folder: 'smart-campus/events',
+        public_id: `event-${eventId}-${Date.now()}`,
+        ...options
+      });
+
+      // Create image object
+      const imageData = {
+        url: cloudinaryResult.url,
+        public_id: cloudinaryResult.public_id,
+        width: cloudinaryResult.width,
+        height: cloudinaryResult.height,
+        format: cloudinaryResult.format,
+        size: cloudinaryResult.size,
+        caption: options.caption || '',
+        isPrimary: options.isPrimary || false
+      };
+
+      // If this is marked as primary, unmark other images as primary
+      if (imageData.isPrimary) {
+        event.images.forEach(img => {
+          img.isPrimary = false;
+        });
+      }
+
+      // Add image to event
+      event.images.push(imageData);
+      event.updatedBy = userId;
+
+      await event.save();
+
+      logger.info(`Image uploaded for event ${eventId} by user ${userId}`);
+      return {
+        message: 'Image uploaded successfully',
+        image: imageData
+      };
+    } catch (error) {
+      logger.error('Error uploading event image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete image from event
+   */
+  async deleteEventImage(eventId, imageId, userId) {
+    try {
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      // Check if user has permission (admin, faculty, or organizer)
+      const user = await User.findById(userId);
+      if (!user || !['admin', 'faculty'].includes(user.role)) {
+        // Check if user is the organizer or creator
+        if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
+          throw createError('You do not have permission to delete images from this event', 403);
+        }
+      }
+
+      // Find the image
+      const imageIndex = event.images.findIndex(img => img._id.toString() === imageId);
+      if (imageIndex === -1) {
+        throw createError('Image not found', 404);
+      }
+
+      const image = event.images[imageIndex];
+
+      // Delete from Cloudinary
+      if (image.public_id) {
+        await deleteImage(image.public_id);
+      }
+
+      // Remove image from event
+      event.images.splice(imageIndex, 1);
+      event.updatedBy = userId;
+
+      await event.save();
+
+      logger.info(`Image deleted from event ${eventId} by user ${userId}`);
+      return {
+        message: 'Image deleted successfully',
+        imageId
+      };
+    } catch (error) {
+      logger.error('Error deleting event image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update image caption or primary status
+   */
+  async updateEventImage(eventId, imageId, updateData, userId) {
+    try {
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      // Check if user has permission (admin, faculty, or organizer)
+      const user = await User.findById(userId);
+      if (!user || !['admin', 'faculty'].includes(user.role)) {
+        // Check if user is the organizer or creator
+        if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
+          throw createError('You do not have permission to update images for this event', 403);
+        }
+      }
+
+      // Find the image
+      const image = event.images.find(img => img._id.toString() === imageId);
+      if (!image) {
+        throw createError('Image not found', 404);
+      }
+
+      // Update image data
+      if (updateData.caption !== undefined) {
+        image.caption = updateData.caption;
+      }
+
+      if (updateData.isPrimary !== undefined) {
+        // If setting this image as primary, unmark others
+        if (updateData.isPrimary) {
+          event.images.forEach(img => {
+            img.isPrimary = false;
+          });
+        }
+        image.isPrimary = updateData.isPrimary;
+      }
+
+      event.updatedBy = userId;
+      await event.save();
+
+      logger.info(`Image updated for event ${eventId} by user ${userId}`);
+      return {
+        message: 'Image updated successfully',
+        image
+      };
+    } catch (error) {
+      logger.error('Error updating event image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get event images
+   */
+  async getEventImages(eventId) {
+    try {
+      const event = await Event.findById(eventId).select('images');
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      return {
+        images: event.images,
+        count: event.images.length
+      };
+    } catch (error) {
+      logger.error('Error fetching event images:', error);
       throw error;
     }
   }
