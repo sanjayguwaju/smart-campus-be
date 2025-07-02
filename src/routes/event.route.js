@@ -3,6 +3,7 @@ const router = express.Router();
 const eventController = require('../controllers/event.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 const { validateEvent, validateEventUpdate, validateEventRegistration } = require('../validation/event.validation');
+const { handleImageUpload } = require('../middleware/upload.middleware');
 
 /**
  * @swagger
@@ -1043,5 +1044,160 @@ router.get('/search/my-events', authMiddleware.authenticate, eventController.get
  *         description: Event not found
  */
 router.get('/:eventId/statistics', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.getEventStatistics);
+
+// Image upload routes
+/**
+ * @swagger
+ * /api/events/{eventId}/images:
+ *   post:
+ *     summary: Upload image for event
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file to upload
+ *               caption:
+ *                 type: string
+ *                 description: Image caption
+ *               isPrimary:
+ *                 type: boolean
+ *                 description: Whether this is the primary image
+ *     responses:
+ *       200:
+ *         description: Image uploaded successfully
+ *       400:
+ *         description: Upload failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Event not found
+ */
+router.post('/:eventId/images', 
+  authMiddleware.authenticate, 
+  handleImageUpload('image', { folder: 'smart-campus/events' }), 
+  eventController.uploadEventImage
+);
+
+/**
+ * @swagger
+ * /api/events/{eventId}/images:
+ *   get:
+ *     summary: Get event images
+ *     tags: [Events]
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     responses:
+ *       200:
+ *         description: Event images retrieved successfully
+ *       404:
+ *         description: Event not found
+ */
+router.get('/:eventId/images', eventController.getEventImages);
+
+/**
+ * @swagger
+ * /api/events/{eventId}/images/{imageId}:
+ *   put:
+ *     summary: Update event image
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *       - in: path
+ *         name: imageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Image ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               caption:
+ *                 type: string
+ *                 description: Image caption
+ *               isPrimary:
+ *                 type: boolean
+ *                 description: Whether this is the primary image
+ *     responses:
+ *       200:
+ *         description: Image updated successfully
+ *       400:
+ *         description: Update failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Event or image not found
+ */
+router.put('/:eventId/images/:imageId', authMiddleware.authenticate, eventController.updateEventImage);
+
+/**
+ * @swagger
+ * /api/events/{eventId}/images/{imageId}:
+ *   delete:
+ *     summary: Delete event image
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *       - in: path
+ *         name: imageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Image ID
+ *     responses:
+ *       200:
+ *         description: Image deleted successfully
+ *       400:
+ *         description: Deletion failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Event or image not found
+ */
+router.delete('/:eventId/images/:imageId', authMiddleware.authenticate, eventController.deleteEventImage);
 
 module.exports = router; 

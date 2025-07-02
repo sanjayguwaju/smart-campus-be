@@ -1192,6 +1192,220 @@ class EventController {
       return ResponseHandler.error(res, 500, 'Failed to retrieve user\'s events');
     }
   }
+
+  /**
+   * @swagger
+   * /api/events/{id}/images:
+   *   post:
+   *     summary: Upload image for event
+   *     tags: [Events]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: Event ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               image:
+   *                 type: string
+   *                 format: binary
+   *                 description: Image file to upload
+   *               caption:
+   *                 type: string
+   *                 description: Image caption
+   *               isPrimary:
+   *                 type: boolean
+   *                 description: Whether this is the primary image
+   *     responses:
+   *       200:
+   *         description: Image uploaded successfully
+   *       400:
+   *         description: Upload failed
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Forbidden
+   *       404:
+   *         description: Event not found
+   */
+  async uploadEventImage(req, res) {
+    try {
+      const { eventId } = req.params;
+      const userId = req.user.id;
+      const { caption, isPrimary } = req.body;
+
+      // Check if file was uploaded
+      if (!req.file) {
+        return ResponseHandler.error(res, 400, 'No image file provided');
+      }
+
+      const options = {
+        caption: caption || '',
+        isPrimary: isPrimary === 'true'
+      };
+
+      const result = await eventService.uploadEventImage(eventId, req.file, userId, options);
+
+      return ResponseHandler.success(res, 200, result.message, result);
+    } catch (error) {
+      logger.error('Upload event image error:', error);
+      return ResponseHandler.error(res, error.statusCode || 500, error.message);
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/events/{id}/images:
+   *   get:
+   *     summary: Get event images
+   *     tags: [Events]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: Event ID
+   *     responses:
+   *       200:
+   *         description: Event images retrieved successfully
+   *       404:
+   *         description: Event not found
+   */
+  async getEventImages(req, res) {
+    try {
+      const { eventId } = req.params;
+      const result = await eventService.getEventImages(eventId);
+
+      return ResponseHandler.success(res, 200, 'Event images retrieved successfully', result);
+    } catch (error) {
+      logger.error('Get event images error:', error);
+      return ResponseHandler.error(res, error.statusCode || 500, error.message);
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/events/{id}/images/{imageId}:
+   *   put:
+   *     summary: Update event image
+   *     tags: [Events]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: Event ID
+   *       - in: path
+   *         name: imageId
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: Image ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               caption:
+   *                 type: string
+   *                 description: Image caption
+   *               isPrimary:
+   *                 type: boolean
+   *                 description: Whether this is the primary image
+   *     responses:
+   *       200:
+   *         description: Image updated successfully
+   *       400:
+   *         description: Update failed
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Forbidden
+   *       404:
+   *         description: Event or image not found
+   */
+  async updateEventImage(req, res) {
+    try {
+      const { eventId, imageId } = req.params;
+      const userId = req.user.id;
+      const updateData = req.body;
+
+      const result = await eventService.updateEventImage(eventId, imageId, updateData, userId);
+
+      return ResponseHandler.success(res, 200, result.message, result);
+    } catch (error) {
+      logger.error('Update event image error:', error);
+      return ResponseHandler.error(res, error.statusCode || 500, error.message);
+    }
+  }
+
+  /**
+   * @swagger
+   * /api/events/{id}/images/{imageId}:
+   *   delete:
+   *     summary: Delete event image
+   *     tags: [Events]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: Event ID
+   *       - in: path
+   *         name: imageId
+   *         required: true
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: Image ID
+   *     responses:
+   *       200:
+   *         description: Image deleted successfully
+   *       400:
+   *         description: Deletion failed
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Forbidden
+   *       404:
+   *         description: Event or image not found
+   */
+  async deleteEventImage(req, res) {
+    try {
+      const { eventId, imageId } = req.params;
+      const userId = req.user.id;
+
+      const result = await eventService.deleteEventImage(eventId, imageId, userId);
+
+      return ResponseHandler.success(res, 200, result.message, result);
+    } catch (error) {
+      logger.error('Delete event image error:', error);
+      return ResponseHandler.error(res, error.statusCode || 500, error.message);
+    }
+  }
 }
 
 module.exports = new EventController(); 

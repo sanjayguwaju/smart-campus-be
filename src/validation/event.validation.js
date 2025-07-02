@@ -515,7 +515,7 @@ const validateEventQuery = [
 
 // Event registration validation
 const validateEventRegistration = [
-  param('id')
+  param('eventId')
     .isMongoId()
     .withMessage('Invalid event ID'),
   

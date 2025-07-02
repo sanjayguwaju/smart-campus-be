@@ -7,6 +7,8 @@ A comprehensive Node.js backend API for a Smart Campus management system built w
 - 🔐 **JWT Authentication & Authorization** - Secure user authentication with role-based access control
 - 👥 **User Management** - Complete CRUD operations for users with different roles (Admin, Faculty, Student)
 - 📚 **Course Management** - Comprehensive course management with enrollment, materials, and assignments
+- 🎯 **Event Management** - Complete event management with registration, attendance tracking, and reviews
+- 🖼️ **Image Upload** - Cloudinary integration for event image uploads with optimization
 - 🛡️ **Security** - Rate limiting, CORS, Helmet, input validation, and error handling
 - 📊 **Statistics & Analytics** - User and course statistics for admin dashboard
 - 🔍 **Search & Filtering** - Advanced search and filtering capabilities
@@ -27,6 +29,7 @@ A comprehensive Node.js backend API for a Smart Campus management system built w
 - **Documentation**: Swagger/OpenAPI
 - **Security**: Helmet, CORS, Rate Limiting
 - **Caching**: Redis (optional)
+- **File Upload**: Multer with Cloudinary integration
 
 ## Project Structure
 
@@ -100,7 +103,15 @@ smart-campus-be/
 4. **Start MongoDB**
    Make sure MongoDB is running on your system or use MongoDB Atlas.
 
-5. **Run the application**
+5. **Configure Cloudinary (for image uploads)**
+   ```env
+   CLOUDINARY_CLOUD_NAME=your-cloud-name
+   CLOUDINARY_API_KEY=your-api-key
+   CLOUDINARY_API_SECRET=your-api-secret
+   ```
+   Get your Cloudinary credentials from [cloudinary.com](https://cloudinary.com)
+
+6. **Run the application**
    ```bash
    # Development mode
    npm run dev
@@ -140,6 +151,24 @@ smart-campus-be/
 - `POST /api/v1/courses/:courseId/materials` - Add course material
 - `POST /api/v1/courses/:courseId/assignments` - Add assignment
 - `POST /api/v1/courses/:courseId/assignments/:assignmentId/submit` - Submit assignment
+
+### Events
+- `GET /api/v1/events` - Get all events
+- `GET /api/v1/events/:eventId` - Get event by ID
+- `POST /api/v1/events` - Create new event
+- `PUT /api/v1/events/:eventId` - Update event
+- `DELETE /api/v1/events/:eventId` - Delete event
+- `POST /api/v1/events/:eventId/register` - Register for event
+- `POST /api/v1/events/:eventId/cancel-registration` - Cancel registration
+- `GET /api/v1/events/:eventId/attendees` - Get event attendees
+- `POST /api/v1/events/:eventId/reviews` - Add event review
+- `GET /api/v1/events/:eventId/reviews` - Get event reviews
+
+### Event Images
+- `POST /api/v1/events/:eventId/images` - Upload event image
+- `GET /api/v1/events/:eventId/images` - Get event images
+- `PUT /api/v1/events/:eventId/images/:imageId` - Update event image
+- `DELETE /api/v1/events/:eventId/images/:imageId` - Delete event image
 
 ## User Roles
 
@@ -201,6 +230,10 @@ npm run test:watch
 npm run test:coverage
 ```
 
+## Image Upload
+
+For detailed information about the image upload functionality with Cloudinary integration, see [IMAGE_UPLOAD_README.md](IMAGE_UPLOAD_README.md).
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -216,6 +249,9 @@ npm run test:coverage
 | `CORS_ORIGIN` | Allowed CORS origins | `http://localhost:3000` |
 | `RATE_LIMIT_WINDOW_MS` | Rate limit window | `900000` (15 min) |
 | `RATE_LIMIT_MAX_REQUESTS` | Max requests per window | `100` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | Required |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | Required |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | Required |
 
 ## API Documentation
 
