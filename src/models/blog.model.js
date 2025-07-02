@@ -13,4 +13,19 @@ const blogSchema = new mongoose.Schema({
   attachments: [{ type: String }], // Array of file URLs/paths
 }, { timestamps: true });
 
-module.exports = mongoose.model('Blog', blogSchema); 
+module.exports = mongoose.model('Blog', blogSchema);
+
+// Drop old 'seo.slug_1' index if it exists
+if (process.env.NODE_ENV !== 'production') {
+  mongoose.connection.on('open', async () => {
+    try {
+      const indexes = await mongoose.connection.db.collection('blogs').indexes();
+      if (indexes.some(idx => idx.name === 'seo.slug_1')) {
+        await mongoose.connection.db.collection('blogs').dropIndex('seo.slug_1');
+        console.log('Dropped old index: seo.slug_1');
+      }
+    } catch (err) {
+      // Ignore if index doesn't exist
+    }
+  });
+} 
