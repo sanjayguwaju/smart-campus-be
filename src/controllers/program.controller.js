@@ -6,6 +6,7 @@ const ProgramController = {
   async getAll(req, res) {
     try {
       const programs = await ProgramService.getAllPrograms();
+      console.log('Fetched programs:', programs);
       return ResponseHandler.success(res, 200, 'Programs fetched successfully', programs);
     } catch (error) {
       return ResponseHandler.error(res, 500, error.message);
