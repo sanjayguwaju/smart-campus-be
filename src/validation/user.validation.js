@@ -267,12 +267,12 @@ const validateForgotPassword = [
 ];
 
 /**
- * Reset password validation
+ * Admin reset password validation
  */
 const validateResetPassword = [
-  body('token')
-    .notEmpty()
-    .withMessage('Reset token is required'),
+  body('userId')
+    .isMongoId()
+    .withMessage('Invalid user ID format'),
   
   body('newPassword')
     .isLength({ min: 6 })

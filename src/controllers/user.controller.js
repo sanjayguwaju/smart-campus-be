@@ -193,6 +193,44 @@ class UserController {
   }
 
   /**
+   * Deactivate user (admin only)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async deactivateUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const adminUserId = req.user._id;
+
+      const result = await userService.deactivateUser(userId, adminUserId);
+
+      return ResponseHandler.success(res, 200, result.message, result.user);
+    } catch (error) {
+      logger.error('Deactivate user error:', error);
+      return ResponseHandler.error(res, error.statusCode || 400, error.message);
+    }
+  }
+
+  /**
+   * Activate user (admin only)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async activateUser(req, res) {
+    try {
+      const { userId } = req.params;
+      const adminUserId = req.user._id;
+
+      const result = await userService.activateUser(userId, adminUserId);
+
+      return ResponseHandler.success(res, 200, result.message, result.user);
+    } catch (error) {
+      logger.error('Activate user error:', error);
+      return ResponseHandler.error(res, error.statusCode || 400, error.message);
+    }
+  }
+
+  /**
    * Bulk update users
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object

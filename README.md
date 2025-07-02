@@ -130,6 +130,7 @@ smart-campus-be/
 - `GET /api/v1/auth/profile` - Get user profile
 - `PUT /api/v1/auth/profile` - Update user profile
 - `POST /api/v1/auth/change-password` - Change password
+- `POST /api/v1/auth/reset-password` - Admin reset user password (Admin only)
 
 ### Users
 - `GET /api/v1/users` - Get all users (Admin only)
@@ -139,6 +140,9 @@ smart-campus-be/
 - `DELETE /api/v1/users/:userId` - Delete user (Admin only)
 - `GET /api/v1/users/role/:role` - Get users by role
 - `GET /api/v1/users/stats` - Get user statistics
+- `PATCH /api/v1/users/:userId/deactivate` - Deactivate user (Admin only)
+- `PATCH /api/v1/users/:userId/activate` - Activate user (Admin only)
+- `PATCH /api/v1/users/:userId/toggle-status` - Toggle user status (Admin only)
 
 ### Courses
 - `GET /api/v1/courses` - Get all courses
@@ -177,6 +181,7 @@ smart-campus-be/
 - User management (CRUD operations)
 - Course management
 - System statistics and analytics
+- Password reset for any user
 
 ### Faculty
 - Create and manage their own courses

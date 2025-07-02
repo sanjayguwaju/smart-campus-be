@@ -296,6 +296,62 @@ router.patch('/:userId/toggle-status', authenticate, requireAdmin, validateUserI
 
 /**
  * @swagger
+ * /api/v1/users/{userId}/deactivate:
+ *   patch:
+ *     summary: Deactivate user (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the user to deactivate
+ *     responses:
+ *       200:
+ *         description: User deactivated successfully
+ *       400:
+ *         description: Validation error or user not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only admin users can deactivate users
+ */
+router.patch('/:userId/deactivate', authenticate, requireAdmin, validateUserId, userController.deactivateUser);
+
+/**
+ * @swagger
+ * /api/v1/users/{userId}/activate:
+ *   patch:
+ *     summary: Activate user (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the user to activate
+ *     responses:
+ *       200:
+ *         description: User activated successfully
+ *       400:
+ *         description: Validation error or user not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only admin users can activate users
+ */
+router.patch('/:userId/activate', authenticate, requireAdmin, validateUserId, userController.activateUser);
+
+/**
+ * @swagger
  * /api/v1/users/bulk-update:
  *   patch:
  *     summary: Bulk update users

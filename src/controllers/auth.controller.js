@@ -148,22 +148,21 @@ class AuthController {
   }
 
   /**
-   * Reset password with token
+   * Admin reset user password (admin only)
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
    */
   async resetPassword(req, res) {
     try {
-      const { token, newPassword } = req.body;
-      
-      // TODO: Implement token verification and password reset
-      // For now, just return success message
-      logger.info(`Password reset with token: ${token}`);
+      const { userId, newPassword } = req.body;
+      const adminUserId = req.user._id;
 
-      return ResponseHandler.success(res, 200, 'Password reset successfully');
+      const result = await userService.adminResetPassword(userId, newPassword, adminUserId);
+
+      return ResponseHandler.success(res, 200, result.message, result.user);
     } catch (error) {
-      logger.error('Reset password error:', error);
-      return ResponseHandler.error(res, 400, error.message);
+      logger.error('Admin reset password error:', error);
+      return ResponseHandler.error(res, error.statusCode || 400, error.message);
     }
   }
 

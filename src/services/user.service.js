@@ -372,6 +372,155 @@ class UserService {
       throw error;
     }
   }
+
+  /**
+   * Admin reset user password (admin only)
+   * @param {string} targetUserId - Target user ID whose password to reset
+   * @param {string} newPassword - New password
+   * @param {string} adminUserId - Admin user ID performing the reset
+   * @returns {Promise<Object>} Success status and user info
+   */
+  async adminResetPassword(targetUserId, newPassword, adminUserId) {
+    try {
+      // Verify admin user exists and is admin
+      const adminUser = await User.findById(adminUserId);
+      if (!adminUser) {
+        throw new Error('Admin user not found');
+      }
+      if (adminUser.role !== 'admin') {
+        throw new Error('Only admin users can reset passwords');
+      }
+
+      // Find target user
+      const targetUser = await User.findById(targetUserId);
+      if (!targetUser) {
+        throw new Error('Target user not found');
+      }
+
+      // Update password
+      targetUser.password = newPassword;
+      await targetUser.save();
+
+      // Log the action
+      logger.info(`Password reset by admin ${adminUser.email} for user ${targetUser.email}`);
+
+      // Return success response without sensitive data
+      const userResponse = targetUser.toObject();
+      delete userResponse.password;
+      delete userResponse.refreshToken;
+
+      return {
+        success: true,
+        message: 'Password reset successfully',
+        user: userResponse
+      };
+    } catch (error) {
+      logger.error('Error in admin password reset:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deactivate user (admin only)
+   * @param {string} userId - User ID to deactivate
+   * @param {string} adminUserId - Admin user ID performing the deactivation
+   * @returns {Promise<Object>} Success status and user info
+   */
+  async deactivateUser(userId, adminUserId) {
+    try {
+      // Verify admin user exists and is admin
+      const adminUser = await User.findById(adminUserId);
+      if (!adminUser) {
+        throw new Error('Admin user not found');
+      }
+      if (adminUser.role !== 'admin') {
+        throw new Error('Only admin users can deactivate users');
+      }
+
+      // Find target user
+      const targetUser = await User.findById(userId);
+      if (!targetUser) {
+        throw new Error('Target user not found');
+      }
+
+      // Prevent admin from deactivating themselves
+      if (targetUser._id.toString() === adminUserId) {
+        throw new Error('Admin cannot deactivate their own account');
+      }
+
+      // Prevent deactivating other admins (optional security measure)
+      if (targetUser.role === 'admin') {
+        throw new Error('Cannot deactivate admin accounts');
+      }
+
+      // Deactivate user
+      targetUser.isActive = false;
+      await targetUser.save();
+
+      // Log the action
+      logger.info(`User deactivated by admin ${adminUser.email}: ${targetUser.email}`);
+
+      // Return success response without sensitive data
+      const userResponse = targetUser.toObject();
+      delete userResponse.password;
+      delete userResponse.refreshToken;
+
+      return {
+        success: true,
+        message: 'User deactivated successfully',
+        user: userResponse
+      };
+    } catch (error) {
+      logger.error('Error in user deactivation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Activate user (admin only)
+   * @param {string} userId - User ID to activate
+   * @param {string} adminUserId - Admin user ID performing the activation
+   * @returns {Promise<Object>} Success status and user info
+   */
+  async activateUser(userId, adminUserId) {
+    try {
+      // Verify admin user exists and is admin
+      const adminUser = await User.findById(adminUserId);
+      if (!adminUser) {
+        throw new Error('Admin user not found');
+      }
+      if (adminUser.role !== 'admin') {
+        throw new Error('Only admin users can activate users');
+      }
+
+      // Find target user
+      const targetUser = await User.findById(userId);
+      if (!targetUser) {
+        throw new Error('Target user not found');
+      }
+
+      // Activate user
+      targetUser.isActive = true;
+      await targetUser.save();
+
+      // Log the action
+      logger.info(`User activated by admin ${adminUser.email}: ${targetUser.email}`);
+
+      // Return success response without sensitive data
+      const userResponse = targetUser.toObject();
+      delete userResponse.password;
+      delete userResponse.refreshToken;
+
+      return {
+        success: true,
+        message: 'User activated successfully',
+        user: userResponse
+      };
+    } catch (error) {
+      logger.error('Error in user activation:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new UserService(); 

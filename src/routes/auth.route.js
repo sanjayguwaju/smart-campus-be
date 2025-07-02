@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
-const { authenticate } = require('../middleware/auth.middleware');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 const {
   validateUserRegistration,
   validateUserLogin,
@@ -218,8 +218,10 @@ router.post('/forgot-password', validateForgotPassword, authController.forgotPas
  * @swagger
  * /api/v1/auth/reset-password:
  *   post:
- *     summary: Reset password with token
+ *     summary: Admin reset user password (admin only)
  *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -227,21 +229,31 @@ router.post('/forgot-password', validateForgotPassword, authController.forgotPas
  *           schema:
  *             type: object
  *             required:
- *               - token
+ *               - userId
  *               - newPassword
  *               - confirmPassword
  *             properties:
- *               token:
+ *               userId:
  *                 type: string
+ *                 format: uuid
+ *                 description: ID of the user whose password to reset
  *               newPassword:
  *                 type: string
+ *                 description: New password for the user
  *               confirmPassword:
  *                 type: string
+ *                 description: Password confirmation
  *     responses:
  *       200:
  *         description: Password reset successfully
+ *       400:
+ *         description: Validation error or user not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only admin users can reset passwords
  */
-router.post('/reset-password', validateResetPassword, authController.resetPassword);
+router.post('/reset-password', authenticate, authorize(['admin']), validateResetPassword, authController.resetPassword);
 
 /**
  * @swagger
