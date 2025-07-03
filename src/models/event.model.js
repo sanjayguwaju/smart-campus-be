@@ -181,6 +181,11 @@ const eventSchema = new mongoose.Schema({
     enum: ['draft', 'published', 'cancelled', 'completed', 'postponed'],
     default: 'draft'
   },
+  isPublished: {
+    type: Boolean,
+    default: false,
+    required: true
+  },
   visibility: {
     type: String,
     enum: ['public', 'private', 'restricted'],
@@ -292,6 +297,7 @@ const eventSchema = new mongoose.Schema({
 eventSchema.index({ title: 'text', description: 'text', tags: 'text' });
 eventSchema.index({ startDate: 1, endDate: 1 });
 eventSchema.index({ status: 1, visibility: 1 });
+eventSchema.index({ isPublished: 1, visibility: 1 });
 eventSchema.index({ organizer: 1 });
 eventSchema.index({ eventType: 1, category: 1 });
 eventSchema.index({ featured: 1, priority: 1 });
@@ -351,11 +357,17 @@ eventSchema.pre('save', function(next) {
   next();
 });
 
+// Pre-save middleware to update isPublished based on status
+eventSchema.pre('save', function(next) {
+  this.isPublished = this.status === 'published';
+  next();
+});
+
 // Static method to find upcoming events
 eventSchema.statics.findUpcoming = function(limit = 10) {
   return this.find({
     startDate: { $gt: new Date() },
-    status: 'published',
+    isPublished: true,
     visibility: 'public'
   })
   .sort({ startDate: 1 })
@@ -368,12 +380,27 @@ eventSchema.statics.findUpcoming = function(limit = 10) {
 eventSchema.statics.findFeatured = function(limit = 5) {
   return this.find({
     featured: true,
-    status: 'published',
+    isPublished: true,
     visibility: 'public'
   })
   .sort({ startDate: 1 })
   .limit(limit)
   .populate('organizer', 'firstName lastName email avatar');
+};
+
+// Static method to find published events
+eventSchema.statics.findPublished = function(filters = {}, limit = 20) {
+  const query = {
+    isPublished: true,
+    visibility: 'public',
+    ...filters
+  };
+  
+  return this.find(query)
+    .sort({ startDate: 1 })
+    .limit(limit)
+    .populate('organizer', 'firstName lastName email avatar')
+    .populate('coOrganizers', 'firstName lastName email avatar');
 };
 
 // Instance method to register user for event
