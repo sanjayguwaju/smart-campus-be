@@ -14,6 +14,9 @@ router.post('/', ProgramController.create);
 // PUT update program
 router.put('/:id', ProgramController.update);
 
+// PUT publish/unpublish program
+router.put('/:id/publish', ProgramController.publish);
+
 // DELETE program
 router.delete('/:id', ProgramController.delete);
 

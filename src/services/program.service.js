@@ -20,6 +20,15 @@ class ProgramService {
   async deleteProgram(id) {
     return Program.findByIdAndDelete(id);
   }
+
+  async publishProgram(id, isPublished) {
+    const program = await Program.findById(id);
+    if (!program) throw new Error('Program not found');
+    program.isPublished = isPublished;
+    program.status = isPublished ? 'published' : 'draft';
+    await program.save();
+    return program;
+  }
 }
 
 module.exports = new ProgramService(); 

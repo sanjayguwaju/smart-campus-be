@@ -50,6 +50,20 @@ const ProgramController = {
     } catch (error) {
       return ResponseHandler.error(res, 400, error.message);
     }
+  },
+
+  async publish(req, res) {
+    try {
+      const { isPublished } = req.body;
+      if (typeof isPublished !== 'boolean') {
+        return ResponseHandler.error(res, 400, 'isPublished must be a boolean');
+      }
+      const program = await ProgramService.publishProgram(req.params.id, isPublished);
+      if (!program) return ResponseHandler.error(res, 404, 'Program not found');
+      return ResponseHandler.success(res, 200, `Program ${isPublished ? 'published' : 'unpublished'} successfully`, program);
+    } catch (error) {
+      return ResponseHandler.error(res, 400, error.message);
+    }
   }
 };
 
