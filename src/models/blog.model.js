@@ -8,7 +8,8 @@ const blogSchema = new mongoose.Schema({
   content: { type: String, required: true },
   summary: { type: String, required: true },
   tags: [{ type: String }],
-  published: { type: Boolean, default: false },
+  isPublished: { type: Boolean, default: false },
+  status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
   credits: { type: String },
   attachments: [{ type: String }], // Array of file URLs/paths
 }, { timestamps: true });

@@ -14,5 +14,7 @@ router.post('/', upload.single('coverImage'), BlogController.create);
 router.put('/:id', upload.single('coverImage'), BlogController.update);
 // DELETE blog
 router.delete('/:id', BlogController.delete);
+// PUT publish/unpublish blog
+router.put('/:id/publish', BlogController.publish);
 
 module.exports = router; 
