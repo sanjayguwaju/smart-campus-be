@@ -14,10 +14,12 @@ const { handleImageUpload } = require('../middleware/upload.middleware');
  *       required:
  *         - title
  *         - description
- *         - type
+ *         - eventType
  *         - category
  *         - startDate
  *         - endDate
+ *         - startTime
+ *         - endTime
  *         - location
  *         - organizer
  *       properties:
@@ -26,17 +28,23 @@ const { handleImageUpload } = require('../middleware/upload.middleware');
  *           description: Auto-generated event ID
  *         title:
  *           type: string
+ *           maxLength: 100
  *           description: Event title
  *         description:
  *           type: string
+ *           maxLength: 1000
  *           description: Event description
- *         type:
+ *         shortDescription:
  *           type: string
- *           enum: [academic, social, cultural, sports, workshop, conference, seminar, other]
+ *           maxLength: 200
+ *           description: Short description of the event
+ *         eventType:
+ *           type: string
+ *           enum: [academic, cultural, sports, technical, social, workshop, seminar, conference, other]
  *           description: Type of event
  *         category:
  *           type: string
- *           enum: [undergraduate, graduate, faculty, staff, all]
+ *           enum: [student, faculty, admin, public, invitation-only]
  *           description: Target category
  *         startDate:
  *           type: string
@@ -48,50 +56,88 @@ const { handleImageUpload } = require('../middleware/upload.middleware');
  *           description: Event end date
  *         startTime:
  *           type: string
- *           description: Event start time
+ *           pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+ *           description: Event start time (HH:MM format)
  *         endTime:
  *           type: string
- *           description: Event end time
+ *           pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
+ *           description: Event end time (HH:MM format)
  *         location:
  *           type: object
  *           properties:
  *             venue:
  *               type: string
- *             address:
+ *               description: Event venue
+ *             room:
  *               type: string
- *             coordinates:
- *               type: object
- *               properties:
- *                 latitude:
- *                   type: number
- *                 longitude:
- *                   type: number
+ *               description: Room number
+ *             building:
+ *               type: string
+ *               description: Building name
+ *             campus:
+ *               type: string
+ *               description: Campus location
  *         organizer:
- *           type: object
- *           properties:
- *             id:
- *               type: string
- *             name:
- *               type: string
- *             email:
- *               type: string
- *             phone:
- *               type: string
+ *           type: string
+ *           format: uuid
+ *           description: Organizer user ID
+ *         coOrganizers:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uuid
+ *           description: Co-organizer user IDs
  *         maxAttendees:
  *           type: number
+ *           minimum: 1
  *           description: Maximum number of attendees
+ *         currentAttendees:
+ *           type: number
+ *           description: Current number of attendees
  *         registrationDeadline:
  *           type: string
- *           format: date
+ *           format: date-time
  *           description: Registration deadline
+ *         isRegistrationRequired:
+ *           type: boolean
+ *           description: Whether registration is required
+ *         isRegistrationOpen:
+ *           type: boolean
+ *           description: Whether registration is currently open
  *         tags:
  *           type: array
  *           items:
  *             type: string
+ *           description: Event tags
  *         images:
  *           type: array
  *           items:
- *             type: string
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 description: Image URL
+ *               public_id:
+ *                 type: string
+ *                 description: Cloudinary public ID (optional for external images)
+ *               caption:
+ *                 type: string
+ *                 description: Image caption
+ *               isPrimary:
+ *                 type: boolean
+ *                 description: Whether this is the primary image
+ *               width:
+ *                 type: number
+ *                 description: Image width
+ *               height:
+ *                 type: number
+ *                 description: Image height
+ *               format:
+ *                 type: string
+ *                 description: Image format
+ *               size:
+ *                 type: number
+ *                 description: Image size in bytes
  *         attachments:
  *           type: array
  *           items:
@@ -99,81 +145,159 @@ const { handleImageUpload } = require('../middleware/upload.middleware');
  *             properties:
  *               name:
  *                 type: string
+ *                 description: Attachment name
  *               url:
  *                 type: string
+ *                 description: Attachment URL
  *               type:
  *                 type: string
+ *                 description: File type
+ *               size:
+ *                 type: number
+ *                 description: File size in bytes
  *         contactInfo:
  *           type: object
  *           properties:
  *             email:
  *               type: string
+ *               format: email
+ *               description: Contact email
  *             phone:
  *               type: string
+ *               description: Contact phone
  *             website:
  *               type: string
+ *               description: Contact website
  *         status:
  *           type: string
- *           enum: [draft, published, cancelled, completed]
+ *           enum: [draft, published, cancelled, completed, postponed]
  *           default: draft
+ *           description: Event status
+ *         isPublished:
+ *           type: boolean
+ *           default: false
+ *           description: Whether the event is published
  *         visibility:
  *           type: string
  *           enum: [public, private, restricted]
  *           default: public
+ *           description: Event visibility
  *         priority:
  *           type: string
  *           enum: [low, medium, high, urgent]
  *           default: medium
+ *           description: Event priority
+ *         featured:
+ *           type: boolean
+ *           default: false
+ *           description: Whether the event is featured
+ *         highlights:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Event highlights
+ *         requirements:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Event requirements
+ *         benefits:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Event benefits
+ *         externalLinks:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Link title
+ *               url:
+ *                 type: string
+ *                 description: Link URL
+ *               description:
+ *                 type: string
+ *                 description: Link description
  *         attendees:
  *           type: array
  *           items:
  *             type: object
  *             properties:
- *               userId:
+ *               user:
  *                 type: string
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               registrationDate:
- *                 type: string
- *                 format: date-time
+ *                 format: uuid
+ *                 description: User ID
  *               status:
  *                 type: string
- *                 enum: [registered, attended, cancelled, no-show]
+ *                 enum: [registered, attended, cancelled, waitlist]
+ *                 description: Attendance status
+ *               registeredAt:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Registration date
  *         reviews:
  *           type: array
  *           items:
  *             type: object
  *             properties:
- *               userId:
+ *               user:
  *                 type: string
+ *                 format: uuid
+ *                 description: User ID
  *               rating:
  *                 type: number
  *                 minimum: 1
  *                 maximum: 5
+ *                 description: Rating (1-5)
  *               comment:
  *                 type: string
- *               date:
+ *                 maxLength: 500
+ *                 description: Review comment
+ *               createdAt:
  *                 type: string
  *                 format: date-time
+ *                 description: Review date
+ *         averageRating:
+ *           type: number
+ *           minimum: 0
+ *           maximum: 5
+ *           description: Average rating
+ *         totalReviews:
+ *           type: number
+ *           description: Total number of reviews
  *         statistics:
  *           type: object
  *           properties:
- *             totalRegistrations:
+ *             views:
  *               type: number
- *             totalAttendees:
+ *               description: Number of views
+ *             shares:
  *               type: number
- *             averageRating:
+ *               description: Number of shares
+ *             registrations:
  *               type: number
- *             totalReviews:
+ *               description: Number of registrations
+ *             attendance:
  *               type: number
+ *               description: Number of attendees
+ *         createdBy:
+ *           type: string
+ *           format: uuid
+ *           description: User who created the event
+ *         updatedBy:
+ *           type: string
+ *           format: uuid
+ *           description: User who last updated the event
  *         createdAt:
  *           type: string
  *           format: date-time
+ *           description: Creation timestamp
  *         updatedAt:
  *           type: string
  *           format: date-time
+ *           description: Last update timestamp
  */
 
 /**
@@ -366,22 +490,30 @@ router.get('/:eventId', eventController.getEventById);
  *             required:
  *               - title
  *               - description
- *               - type
+ *               - eventType
  *               - category
  *               - startDate
  *               - endDate
+ *               - startTime
+ *               - endTime
  *               - location
+ *               - organizer
  *             properties:
  *               title:
  *                 type: string
+ *                 maxLength: 100
  *               description:
  *                 type: string
- *               type:
+ *                 maxLength: 1000
+ *               shortDescription:
  *                 type: string
- *                 enum: [academic, social, cultural, sports, workshop, conference, seminar, other]
+ *                 maxLength: 200
+ *               eventType:
+ *                 type: string
+ *                 enum: [academic, cultural, sports, technical, social, workshop, seminar, conference, other]
  *               category:
  *                 type: string
- *                 enum: [undergraduate, graduate, faculty, staff, all]
+ *                 enum: [student, faculty, admin, public, invitation-only]
  *               startDate:
  *                 type: string
  *                 format: date
@@ -390,30 +522,108 @@ router.get('/:eventId', eventController.getEventById);
  *                 format: date
  *               startTime:
  *                 type: string
+ *                 pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
  *               endTime:
  *                 type: string
+ *                 pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
  *               location:
  *                 type: object
+ *                 properties:
+ *                   venue:
+ *                     type: string
+ *                   room:
+ *                     type: string
+ *                   building:
+ *                     type: string
+ *                   campus:
+ *                     type: string
+ *               organizer:
+ *                 type: string
+ *                 format: uuid
+ *               coOrganizers:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
  *               maxAttendees:
  *                 type: number
+ *                 minimum: 1
  *               registrationDeadline:
  *                 type: string
- *                 format: date
+ *                 format: date-time
+ *               isRegistrationRequired:
+ *                 type: boolean
+ *               isRegistrationOpen:
+ *                 type: boolean
  *               tags:
  *                 type: array
  *                 items:
  *                   type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     public_id:
+ *                       type: string
+ *                     caption:
+ *                       type: string
+ *                     isPrimary:
+ *                       type: boolean
+ *                     width:
+ *                       type: number
+ *                     height:
+ *                       type: number
+ *                     format:
+ *                       type: string
+ *                     size:
+ *                       type: number
  *               contactInfo:
  *                 type: object
+ *                 properties:
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                   phone:
+ *                     type: string
+ *                   website:
+ *                     type: string
  *               status:
  *                 type: string
- *                 enum: [draft, published, cancelled, completed]
+ *                 enum: [draft, published, cancelled, completed, postponed]
  *               visibility:
  *                 type: string
  *                 enum: [public, private, restricted]
  *               priority:
  *                 type: string
  *                 enum: [low, medium, high, urgent]
+ *               featured:
+ *                 type: boolean
+ *               highlights:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               requirements:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               benefits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               externalLinks:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     url:
+ *                       type: string
+ *                     description:
+ *                       type: string
  *     responses:
  *       201:
  *         description: Event created successfully
@@ -459,14 +669,19 @@ router.post('/', authMiddleware.authenticate, authMiddleware.authorize(['admin',
  *             properties:
  *               title:
  *                 type: string
+ *                 maxLength: 100
  *               description:
  *                 type: string
- *               type:
+ *                 maxLength: 1000
+ *               shortDescription:
  *                 type: string
- *                 enum: [academic, social, cultural, sports, workshop, conference, seminar, other]
+ *                 maxLength: 200
+ *               eventType:
+ *                 type: string
+ *                 enum: [academic, cultural, sports, technical, social, workshop, seminar, conference, other]
  *               category:
  *                 type: string
- *                 enum: [undergraduate, graduate, faculty, staff, all]
+ *                 enum: [student, faculty, admin, public, invitation-only]
  *               startDate:
  *                 type: string
  *                 format: date
@@ -475,30 +690,100 @@ router.post('/', authMiddleware.authenticate, authMiddleware.authorize(['admin',
  *                 format: date
  *               startTime:
  *                 type: string
+ *                 pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
  *               endTime:
  *                 type: string
+ *                 pattern: '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$'
  *               location:
  *                 type: object
+ *                 properties:
+ *                   venue:
+ *                     type: string
+ *                   room:
+ *                     type: string
+ *                   building:
+ *                     type: string
+ *                   campus:
+ *                     type: string
  *               maxAttendees:
  *                 type: number
+ *                 minimum: 1
  *               registrationDeadline:
  *                 type: string
- *                 format: date
+ *                 format: date-time
+ *               isRegistrationRequired:
+ *                 type: boolean
+ *               isRegistrationOpen:
+ *                 type: boolean
  *               tags:
  *                 type: array
  *                 items:
  *                   type: string
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     public_id:
+ *                       type: string
+ *                     caption:
+ *                       type: string
+ *                     isPrimary:
+ *                       type: boolean
+ *                     width:
+ *                       type: number
+ *                     height:
+ *                       type: number
+ *                     format:
+ *                       type: string
+ *                     size:
+ *                       type: number
  *               contactInfo:
  *                 type: object
+ *                 properties:
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                   phone:
+ *                     type: string
+ *                   website:
+ *                     type: string
  *               status:
  *                 type: string
- *                 enum: [draft, published, cancelled, completed]
+ *                 enum: [draft, published, cancelled, completed, postponed]
  *               visibility:
  *                 type: string
  *                 enum: [public, private, restricted]
  *               priority:
  *                 type: string
  *                 enum: [low, medium, high, urgent]
+ *               featured:
+ *                 type: boolean
+ *               highlights:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               requirements:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               benefits:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               externalLinks:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     url:
+ *                       type: string
+ *                     description:
+ *                       type: string
  *     responses:
  *       200:
  *         description: Event updated successfully
