@@ -1406,6 +1406,88 @@ class EventController {
       return ResponseHandler.error(res, error.statusCode || 500, error.message);
     }
   }
+
+  /**
+   * @swagger
+   * /api/events/{eventId}/publish:
+   *   put:
+   *     summary: Publish or unpublish an event
+   *     tags: [Events]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: eventId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Event ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - isPublished
+   *             properties:
+   *               isPublished:
+   *                 type: boolean
+   *                 description: Whether to publish (true) or unpublish (false) the event
+   *     responses:
+   *       200:
+   *         description: Event published/unpublished successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                 message:
+   *                   type: string
+   *                 data:
+   *                   type: object
+   *                   properties:
+   *                     event:
+   *                       type: object
+   *                       properties:
+   *                         _id:
+   *                           type: string
+   *                         title:
+   *                           type: string
+   *                         isPublished:
+   *                           type: boolean
+   *                         status:
+   *                           type: string
+   *       400:
+   *         description: Validation error
+   *       401:
+   *         description: Unauthorized
+   *       403:
+   *         description: Forbidden - Insufficient permissions
+   *       404:
+   *         description: Event not found
+   */
+  async publishEvent(req, res) {
+    try {
+      const { eventId } = req.params;
+      const { isPublished } = req.body;
+      const userId = req.user.id;
+
+      // Validate isPublished is a boolean
+      if (typeof isPublished !== 'boolean') {
+        return ResponseHandler.error(res, 400, 'isPublished must be a boolean value');
+      }
+
+      const result = await eventService.publishEvent(eventId, isPublished, userId);
+
+      return ResponseHandler.success(res, 200, result.message, result);
+    } catch (error) {
+      logger.error('Publish event error:', error);
+      return ResponseHandler.error(res, error.statusCode || 500, error.message);
+    }
+  }
 }
 
 module.exports = new EventController(); 

@@ -1149,6 +1149,54 @@ class EventService {
       throw error;
     }
   }
+
+  /**
+   * Publish or unpublish an event
+   */
+  async publishEvent(eventId, isPublished, userId) {
+    try {
+      const event = await Event.findById(eventId);
+      if (!event) {
+        throw createError('Event not found', 404);
+      }
+
+      // Check if user has permission (admin, faculty, or organizer)
+      const user = await User.findById(userId);
+      if (!user || !['admin', 'faculty'].includes(user.role)) {
+        // Check if user is the organizer or creator
+        if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
+          throw createError('You do not have permission to publish/unpublish this event', 403);
+        }
+      }
+
+      // Update the isPublished field
+      event.isPublished = isPublished;
+      
+      // Update status based on isPublished
+      if (isPublished) {
+        event.status = 'published';
+      } else {
+        event.status = 'draft';
+      }
+      
+      event.updatedBy = userId;
+      await event.save();
+
+      logger.info(`Event ${eventId} ${isPublished ? 'published' : 'unpublished'} by user ${userId}`);
+      return {
+        message: `Event ${isPublished ? 'published' : 'unpublished'} successfully`,
+        event: {
+          _id: event._id,
+          title: event.title,
+          isPublished: event.isPublished,
+          status: event.status
+        }
+      };
+    } catch (error) {
+      logger.error('Error publishing/unpublishing event:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new EventService(); 

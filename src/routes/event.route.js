@@ -1200,4 +1200,68 @@ router.put('/:eventId/images/:imageId', authMiddleware.authenticate, eventContro
  */
 router.delete('/:eventId/images/:imageId', authMiddleware.authenticate, eventController.deleteEventImage);
 
+/**
+ * @swagger
+ * /api/events/{eventId}/publish:
+ *   put:
+ *     summary: Publish or unpublish an event
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isPublished
+ *             properties:
+ *               isPublished:
+ *                 type: boolean
+ *                 description: Whether to publish (true) or unpublish (false) the event
+ *     responses:
+ *       200:
+ *         description: Event published/unpublished successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     event:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         title:
+ *                           type: string
+ *                         isPublished:
+ *                           type: boolean
+ *                         status:
+ *                           type: string
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Event not found
+ */
+router.put('/:eventId/publish', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), eventController.publishEvent);
+
 module.exports = router; 
