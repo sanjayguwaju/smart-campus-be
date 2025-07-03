@@ -43,6 +43,15 @@ const programSchema = new mongoose.Schema({
   brochureUrl: {
     type: String,
     trim: true
+  },
+  isPublished: {
+    type: Boolean,
+    default: false
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'published', 'archived'],
+    default: 'draft'
   }
 }, {
   timestamps: true
