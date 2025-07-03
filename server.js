@@ -46,7 +46,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000, // increased limit
   message: {
     error: 'Too many requests from this IP, please try again later.'
   },
@@ -54,7 +54,11 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(limiter);
+// Only apply limiter to unauthenticated requests
+app.use((req, res, next) => {
+  if (req.headers.authorization) return next();
+  return limiter(req, res, next);
+});
 
 // Logging middleware
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
