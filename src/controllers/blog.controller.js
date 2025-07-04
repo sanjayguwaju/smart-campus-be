@@ -23,8 +23,8 @@ const BlogController = {
 
   async create(req, res) {
     try {
-      const { title, slug, author, content, summary, tags, isPublished, status, credits } = req.body;
-      const coverImage = req.file ? req.file.path : undefined;
+      const { title, slug, author, content, summary, tags, isPublished, status, credits, coverImage: coverImageFromBody } = req.body;
+      const coverImage = req.file ? req.file.path : coverImageFromBody || undefined;
       const blog = await Blog.create({
         title,
         slug,
@@ -45,8 +45,8 @@ const BlogController = {
 
   async update(req, res) {
     try {
-      const { title, slug, author, content, summary, tags, isPublished, status, credits } = req.body;
-      const coverImage = req.file ? req.file.path : undefined;
+      const { title, slug, author, content, summary, tags, isPublished, status, credits, coverImage: coverImageFromBody } = req.body;
+      const coverImage = req.file ? req.file.path : coverImageFromBody || undefined;
       const updateData = {
         title,
         slug,

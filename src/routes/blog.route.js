@@ -9,9 +9,9 @@ router.get('/', BlogController.getAll);
 // GET single blog
 router.get('/:id', BlogController.getById);
 // CREATE blog
-router.post('/', upload.single('coverImage'), BlogController.create);
+router.post('/', upload.none(), BlogController.create);
 // UPDATE blog
-router.put('/:id', upload.single('coverImage'), BlogController.update);
+router.put('/:id', upload.none(), BlogController.update);
 // DELETE blog
 router.delete('/:id', BlogController.delete);
 // PUT publish/unpublish blog
