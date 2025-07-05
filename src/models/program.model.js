@@ -1,30 +1,11 @@
 const mongoose = require('mongoose');
 
 const programSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
-  },
-  department: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
-  },
-  level: {
-    type: String,
-    required: true,
-    enum: ['undergraduate', 'postgraduate', 'professional'],
-    trim: true
-  },
-  duration: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 50
-  },
+  name: { type: String, required: true },
+  department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
+  level: { type: String, enum: ['Undergraduate', 'Postgraduate'], required: true },
+  duration: { type: String, required: true },
+  semesters: { type: Number, required: true },
   description: {
     type: String,
     required: true,
@@ -53,8 +34,6 @@ const programSchema = new mongoose.Schema({
     enum: ['draft', 'published', 'archived'],
     default: 'draft'
   }
-}, {
-  timestamps: true
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Program', programSchema); 

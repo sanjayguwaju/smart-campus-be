@@ -1,6 +1,7 @@
 const courseService = require('../services/course.service');
 const ResponseHandler = require('../utils/responseHandler');
 const logger = require('../utils/logger');
+const Course = require('../models/course.model');
 
 /**
  * Course Controller
@@ -48,14 +49,18 @@ class CourseController {
   async getCourseById(req, res) {
     try {
       const { courseId } = req.params;
-      const course = await courseService.getCourseById(courseId);
+      const course = await Course.findById(courseId)
+        .populate('program')
+        .populate('department')
+        .populate('faculty');
+
+      if (!course) {
+        return ResponseHandler.notFound(res, 'Course not found');
+      }
 
       return ResponseHandler.success(res, 200, 'Course retrieved successfully', course);
     } catch (error) {
       logger.error('Get course by ID error:', error);
-      if (error.message === 'Course not found') {
-        return ResponseHandler.notFound(res, 'Course not found');
-      }
       return ResponseHandler.error(res, 500, 'Failed to retrieve course');
     }
   }
@@ -67,13 +72,10 @@ class CourseController {
    */
   async createCourse(req, res) {
     try {
-      const courseData = req.body;
-      const course = await courseService.createCourse(courseData);
-
-      return ResponseHandler.success(res, 201, 'Course created successfully', course);
-    } catch (error) {
-      logger.error('Create course error:', error);
-      return ResponseHandler.error(res, 400, error.message);
+      const course = await Course.create(req.body);
+      res.status(201).json({ success: true, data: course });
+    } catch (err) {
+      res.status(400).json({ success: false, error: err.message });
     }
   }
 
@@ -86,14 +88,22 @@ class CourseController {
     try {
       const { courseId } = req.params;
       const updateData = req.body;
-      const course = await courseService.updateCourse(courseId, updateData);
+      const course = await Course.findByIdAndUpdate(
+        courseId,
+        updateData,
+        { new: true, runValidators: true }
+      )
+        .populate('program')
+        .populate('department')
+        .populate('faculty');
+
+      if (!course) {
+        return ResponseHandler.notFound(res, 'Course not found');
+      }
 
       return ResponseHandler.success(res, 200, 'Course updated successfully', course);
     } catch (error) {
       logger.error('Update course error:', error);
-      if (error.message === 'Course not found') {
-        return ResponseHandler.notFound(res, 'Course not found');
-      }
       return ResponseHandler.error(res, 400, error.message);
     }
   }
@@ -106,14 +116,15 @@ class CourseController {
   async deleteCourse(req, res) {
     try {
       const { courseId } = req.params;
-      await courseService.deleteCourse(courseId);
+      const course = await Course.findByIdAndDelete(courseId);
+
+      if (!course) {
+        return ResponseHandler.notFound(res, 'Course not found');
+      }
 
       return ResponseHandler.success(res, 200, 'Course deleted successfully');
     } catch (error) {
       logger.error('Delete course error:', error);
-      if (error.message === 'Course not found') {
-        return ResponseHandler.notFound(res, 'Course not found');
-      }
       return ResponseHandler.error(res, 500, 'Failed to delete course');
     }
   }

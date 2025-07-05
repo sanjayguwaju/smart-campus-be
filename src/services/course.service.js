@@ -19,18 +19,18 @@ class CourseService {
         throw new Error('Course with this code already exists');
       }
 
-      // Verify instructor exists and is faculty
-      const instructor = await User.findById(courseData.instructor);
-      if (!instructor || instructor.role !== 'faculty') {
-        throw new Error('Instructor must be a faculty member');
+      // Verify faculty exists and is faculty
+      const faculty = await User.findById(courseData.faculty);
+      if (!faculty || faculty.role !== 'faculty') {
+        throw new Error('Faculty must be a faculty member');
       }
 
       // Create course
       const course = new Course(courseData);
       await course.save();
 
-      // Populate instructor details
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty details
+      await course.populate('faculty', 'firstName lastName email department');
 
       logger.info(`Course created: ${course.code} - ${course.title}`);
       return course;
@@ -48,7 +48,7 @@ class CourseService {
   async getCourseById(courseId) {
     try {
       const course = await Course.findById(courseId)
-        .populate('instructor', 'firstName lastName email department')
+        .populate('faculty', 'firstName lastName email department')
         .populate('students', 'firstName lastName email studentId')
         .populate('prerequisites', 'title code');
 
@@ -72,14 +72,14 @@ class CourseService {
   async getCourses(filters = {}, pagination = {}) {
     try {
       const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = pagination;
-      const { department, semester, year, instructor, isActive, isPublished, available, search } = filters;
+      const { department, semester, year, faculty, isActive, isPublished, available, search } = filters;
 
       // Build query
       const query = {};
       if (department) query.department = { $regex: department, $options: 'i' };
       if (semester) query.semester = semester;
       if (year) query.year = year;
-      if (instructor) query.instructor = instructor;
+      if (faculty) query.faculty = faculty;
       if (isActive !== undefined) query.isActive = isActive;
       if (isPublished !== undefined) query.isPublished = isPublished;
       if (available) {
@@ -102,7 +102,7 @@ class CourseService {
       // Execute query
       const skip = (page - 1) * limit;
       const courses = await Course.find(query)
-        .populate('instructor', 'firstName lastName email department')
+        .populate('faculty', 'firstName lastName email department')
         .sort(sort)
         .skip(skip)
         .limit(limit);
@@ -146,11 +146,11 @@ class CourseService {
         }
       }
 
-      // Verify instructor if being updated
-      if (updateData.instructor) {
-        const instructor = await User.findById(updateData.instructor);
-        if (!instructor || instructor.role !== 'faculty') {
-          throw new Error('Instructor must be a faculty member');
+      // Verify faculty if being updated
+      if (updateData.faculty) {
+        const faculty = await User.findById(updateData.faculty);
+        if (!faculty || faculty.role !== 'faculty') {
+          throw new Error('Faculty must be a faculty member');
         }
       }
 
@@ -158,8 +158,8 @@ class CourseService {
       Object.assign(course, updateData);
       await course.save();
 
-      // Populate instructor details
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty details
+      await course.populate('faculty', 'firstName lastName email department');
 
       logger.info(`Course updated: ${course.code} - ${course.title}`);
       return course;
@@ -222,8 +222,8 @@ class CourseService {
       // Enroll student
       await course.addStudent(studentId);
 
-      // Populate instructor and students
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty and students
+      await course.populate('faculty', 'firstName lastName email department');
       await course.populate('students', 'firstName lastName email studentId');
 
       logger.info(`Student ${student.email} enrolled in course ${course.code}`);
@@ -250,8 +250,8 @@ class CourseService {
       // Remove student
       await course.removeStudent(studentId);
 
-      // Populate instructor and students
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty and students
+      await course.populate('faculty', 'firstName lastName email department');
       await course.populate('students', 'firstName lastName email studentId');
 
       logger.info(`Student removed from course ${course.code}`);
@@ -279,8 +279,8 @@ class CourseService {
       course.materials.push(materialData);
       await course.save();
 
-      // Populate instructor
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty
+      await course.populate('faculty', 'firstName lastName email department');
 
       logger.info(`Material added to course ${course.code}`);
       return course;
@@ -309,8 +309,8 @@ class CourseService {
       );
       await course.save();
 
-      // Populate instructor
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty
+      await course.populate('faculty', 'firstName lastName email department');
 
       logger.info(`Material removed from course ${course.code}`);
       return course;
@@ -337,8 +337,8 @@ class CourseService {
       course.assignments.push(assignmentData);
       await course.save();
 
-      // Populate instructor
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty
+      await course.populate('faculty', 'firstName lastName email department');
 
       logger.info(`Assignment added to course ${course.code}`);
       return course;
@@ -390,8 +390,8 @@ class CourseService {
 
       await course.save();
 
-      // Populate instructor
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty
+      await course.populate('faculty', 'firstName lastName email department');
 
       logger.info(`Assignment submitted for course ${course.code}`);
       return course;
@@ -436,8 +436,8 @@ class CourseService {
 
       await course.save();
 
-      // Populate instructor
-      await course.populate('instructor', 'firstName lastName email department');
+      // Populate faculty
+      await course.populate('faculty', 'firstName lastName email department');
 
       logger.info(`Assignment graded for course ${course.code}`);
       return course;
@@ -448,19 +448,19 @@ class CourseService {
   }
 
   /**
-   * Get courses by instructor
-   * @param {string} instructorId - Instructor ID
-   * @returns {Promise<Array>} Courses taught by instructor
+   * Get courses by faculty
+   * @param {string} facultyId - Faculty ID
+   * @returns {Promise<Array>} Courses taught by faculty
    */
-  async getCoursesByInstructor(instructorId) {
+  async getCoursesByFaculty(facultyId) {
     try {
-      const courses = await Course.findByInstructor(instructorId)
-        .populate('instructor', 'firstName lastName email department')
+      const courses = await Course.findByFaculty(facultyId)
+        .populate('faculty', 'firstName lastName email department')
         .populate('students', 'firstName lastName email studentId');
 
       return courses;
     } catch (error) {
-      logger.error('Error getting courses by instructor:', error);
+      logger.error('Error getting courses by faculty:', error);
       throw error;
     }
   }
@@ -473,7 +473,7 @@ class CourseService {
   async getCoursesByDepartment(department) {
     try {
       const courses = await Course.findByDepartment(department)
-        .populate('instructor', 'firstName lastName email department')
+        .populate('faculty', 'firstName lastName email department')
         .populate('students', 'firstName lastName email studentId');
 
       return courses;
@@ -490,7 +490,7 @@ class CourseService {
   async getAvailableCourses() {
     try {
       const courses = await Course.findAvailable()
-        .populate('instructor', 'firstName lastName email department')
+        .populate('faculty', 'firstName lastName email department')
         .populate('students', 'firstName lastName email studentId');
 
       return courses;
