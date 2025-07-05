@@ -10,12 +10,14 @@ const courseSchema = new mongoose.Schema({
   semesterTerm: { type: String, enum: ['Fall', 'Spring', 'Summer', 'Winter'], required: true },
   faculty: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   description: { type: String },
-  creditHours: { type: Number, required: true }
+  creditHours: { type: Number, required: true },
+  year: { type: Number, required: true },
+  maxStudents: { type: Number, required: true }
 }, { timestamps: true });
 
-// Middleware to set 'name' from 'title' if provided
+// Middleware to always set 'name' from 'title'
 courseSchema.pre('validate', function(next) {
-  if (this.title && !this.name) {
+  if (this.title) {
     this.name = this.title;
   }
   next();

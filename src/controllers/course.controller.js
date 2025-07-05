@@ -73,6 +73,9 @@ class CourseController {
   async createCourse(req, res) {
     try {
       const course = await Course.create(req.body);
+      await course.populate('faculty', 'firstName lastName email department');
+      await course.populate('program', 'name level duration semesters department');
+      await course.populate('department', 'name');
       res.status(201).json({ success: true, data: course });
     } catch (err) {
       res.status(400).json({ success: false, error: err.message });
@@ -88,19 +91,17 @@ class CourseController {
     try {
       const { courseId } = req.params;
       const updateData = req.body;
-      const course = await Course.findByIdAndUpdate(
+      let course = await Course.findByIdAndUpdate(
         courseId,
         updateData,
         { new: true, runValidators: true }
-      )
-        .populate('program')
-        .populate('department')
-        .populate('faculty');
-
+      );
       if (!course) {
         return ResponseHandler.notFound(res, 'Course not found');
       }
-
+      await course.populate('faculty', 'firstName lastName email department');
+      await course.populate('program', 'name level duration semesters department');
+      await course.populate('department', 'name');
       return ResponseHandler.success(res, 200, 'Course updated successfully', course);
     } catch (error) {
       logger.error('Update course error:', error);
