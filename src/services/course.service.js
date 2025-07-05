@@ -103,6 +103,8 @@ class CourseService {
       const skip = (page - 1) * limit;
       const courses = await Course.find(query)
         .populate('faculty', 'firstName lastName email department')
+        .populate('program', 'name level duration semesters department')
+        .populate('department', 'name')
         .sort(sort)
         .skip(skip)
         .limit(limit);
