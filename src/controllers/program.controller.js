@@ -1,70 +1,90 @@
 const ProgramService = require('../services/program.service');
 const ResponseHandler = require('../utils/responseHandler');
 const createError = require('../utils/createError');
+const Program = require('../models/program.model');
+const Department = require('../models/department.model');
 
-const ProgramController = {
-  async getAll(req, res) {
-    try {
-      const programs = await ProgramService.getAllPrograms();
-      console.log('Fetched programs:', programs);
-      return ResponseHandler.success(res, 200, 'Programs fetched successfully', programs);
-    } catch (error) {
-      return ResponseHandler.error(res, 500, error.message);
-    }
-  },
+// --- CRUD functions used by the router ---
 
-  async getById(req, res) {
-    try {
-      const program = await ProgramService.getProgramById(req.params.id);
-      if (!program) return ResponseHandler.error(res, 404, 'Program not found');
-      return ResponseHandler.success(res, 200, 'Program fetched successfully', program);
-    } catch (error) {
-      return ResponseHandler.error(res, 500, error.message);
-    }
-  },
-
-  async create(req, res) {
-    try {
-      const program = await ProgramService.createProgram(req.body);
-      return ResponseHandler.success(res, 201, 'Program created successfully', program);
-    } catch (error) {
-      return ResponseHandler.error(res, 400, error.message);
-    }
-  },
-
-  async update(req, res) {
-    try {
-      const program = await ProgramService.updateProgram(req.params.id, req.body);
-      if (!program) return ResponseHandler.error(res, 404, 'Program not found');
-      return ResponseHandler.success(res, 200, 'Program updated successfully', program);
-    } catch (error) {
-      return ResponseHandler.error(res, 400, error.message);
-    }
-  },
-
-  async delete(req, res) {
-    try {
-      const program = await ProgramService.deleteProgram(req.params.id);
-      if (!program) return ResponseHandler.error(res, 404, 'Program not found');
-      return ResponseHandler.success(res, 200, 'Program deleted successfully', program);
-    } catch (error) {
-      return ResponseHandler.error(res, 400, error.message);
-    }
-  },
-
-  async publish(req, res) {
-    try {
-      const { isPublished } = req.body;
-      if (typeof isPublished !== 'boolean') {
-        return ResponseHandler.error(res, 400, 'isPublished must be a boolean');
-      }
-      const program = await ProgramService.publishProgram(req.params.id, isPublished);
-      if (!program) return ResponseHandler.error(res, 404, 'Program not found');
-      return ResponseHandler.success(res, 200, `Program ${isPublished ? 'published' : 'unpublished'} successfully`, program);
-    } catch (error) {
-      return ResponseHandler.error(res, 400, error.message);
-    }
+async function getPrograms(req, res) {
+  try {
+    const programs = await Program.find().populate('department', 'name');
+    res.json({ success: true, data: programs });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
-};
+}
 
-module.exports = ProgramController; 
+async function getProgramById(req, res) {
+  try {
+    const program = await Program.findById(req.params.id).populate('department', 'name');
+    if (!program) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: program });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+async function createProgram(req, res) {
+  try {
+    const program = new Program(req.body);
+    await program.save();
+    res.status(201).json({ success: true, data: program });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+async function updateProgram(req, res) {
+  try {
+    const program = await Program.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).populate('department');
+    if (!program) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: program });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+async function deleteProgram(req, res) {
+  try {
+    const program = await Program.findByIdAndDelete(req.params.id);
+    if (!program) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, message: 'Program deleted' });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+async function publishProgram(req, res) {
+  try {
+    const { isPublished } = req.body;
+    if (typeof isPublished !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'isPublished must be a boolean' });
+    }
+    const program = await Program.findByIdAndUpdate(
+      req.params.id,
+      { isPublished },
+      { new: true }
+    );
+    if (!program) return res.status(404).json({ success: false, error: 'Program not found' });
+    res.json({ success: true, data: program });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+}
+
+// --- (Optional) Other advanced functions can be exported as needed ---
+
+module.exports = {
+  getPrograms,
+  getProgramById,
+  createProgram,
+  updateProgram,
+  deleteProgram,
+  publishProgram,
+  // Add other exports as needed
+}; 

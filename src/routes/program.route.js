@@ -1,23 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const ProgramController = require('../controllers/program.controller');
+const programController = require('../controllers/program.controller');
 
 // GET all programs
-router.get('/', ProgramController.getAll);
+router.get('/', programController.getPrograms);
 
 // GET program by ID
-router.get('/:id', ProgramController.getById);
+router.get('/:id', programController.getProgramById);
 
 // POST create new program
-router.post('/', ProgramController.create);
+router.post('/', programController.createProgram);
 
 // PUT update program
-router.put('/:id', ProgramController.update);
+router.put('/:id', programController.updateProgram);
 
-// PUT publish/unpublish program
-router.put('/:id/publish', ProgramController.publish);
+// PUT publish program
+router.put('/:id/publish', programController.publishProgram);
 
 // DELETE program
-router.delete('/:id', ProgramController.delete);
+router.delete('/:id', programController.deleteProgram);
 
 module.exports = router; 

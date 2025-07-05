@@ -55,13 +55,17 @@ const validateCourseCreation = [
     .isLength({ max: 100 })
     .withMessage('Department cannot exceed 100 characters'),
   
-  body('credits')
+  body('creditHours')
     .isInt({ min: 1, max: 6 })
-    .withMessage('Credits must be between 1 and 6'),
+    .withMessage('Credit hours must be between 1 and 6'),
   
   body('semester')
+    .isInt({ min: 1, max: 12 })
+    .withMessage('Semester must be a number between 1 and 12'),
+  
+  body('semesterTerm')
     .isIn(['Fall', 'Spring', 'Summer', 'Winter'])
-    .withMessage('Semester must be Fall, Spring, Summer, or Winter'),
+    .withMessage('Semester term must be Fall, Spring, Summer, or Winter'),
   
   body('year')
     .isInt({ min: 2020, max: 2030 })
@@ -164,15 +168,17 @@ const validateCourseUpdate = [
     .isLength({ max: 100 })
     .withMessage('Department cannot exceed 100 characters'),
   
-  body('credits')
-    .optional()
+  body('creditHours')
     .isInt({ min: 1, max: 6 })
-    .withMessage('Credits must be between 1 and 6'),
+    .withMessage('Credit hours must be between 1 and 6'),
   
   body('semester')
-    .optional()
+    .isInt({ min: 1, max: 12 })
+    .withMessage('Semester must be a number between 1 and 12'),
+  
+  body('semesterTerm')
     .isIn(['Fall', 'Spring', 'Summer', 'Winter'])
-    .withMessage('Semester must be Fall, Spring, Summer, or Winter'),
+    .withMessage('Semester term must be Fall, Spring, Summer, or Winter'),
   
   body('year')
     .optional()
