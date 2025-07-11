@@ -76,11 +76,11 @@ async function createBlog(req, res) {
     const blog = await blogService.createBlog(blogData);
     logger.info(`Blog created: ${blog.title} by user: ${req.user.email}`);
     
-    ResponseHandler.created(res, 'Blog created successfully', blog);
+    ResponseHandler.success(res, 201, 'Blog created successfully', blog);
   } catch (err) {
     logger.error('Error creating blog:', err);
     if (err.message.includes('already exists')) {
-      return ResponseHandler.badRequest(res, err.message);
+      return ResponseHandler.error(res, 400, err.message);
     }
     ResponseHandler.error(res, 500, 'Error creating blog');
   }
@@ -105,7 +105,7 @@ async function updateBlog(req, res) {
       return ResponseHandler.notFound(res, error.message);
     }
     if (error.message.includes('already exists')) {
-      return ResponseHandler.badRequest(res, error.message);
+      return ResponseHandler.error(res, 400, error.message);
     }
     ResponseHandler.error(res, 500, 'Error updating blog');
   }
@@ -125,7 +125,7 @@ async function deleteBlog(req, res) {
       return ResponseHandler.notFound(res, error.message);
     }
     if (error.message.includes('Cannot delete a published blog')) {
-      return ResponseHandler.badRequest(res, error.message);
+      return ResponseHandler.error(res, 400, error.message);
     }
     ResponseHandler.error(res, 500, 'Error deleting blog');
   }
@@ -137,7 +137,7 @@ async function publishBlog(req, res) {
     const { isPublished } = req.body;
     
     if (typeof isPublished !== 'boolean') {
-      return ResponseHandler.badRequest(res, 'isPublished must be a boolean');
+      return ResponseHandler.error(res, 400, 'isPublished must be a boolean');
     }
 
     const blog = await blogService.publishBlog(req.params.id, isPublished);
@@ -188,7 +188,7 @@ async function searchBlogs(req, res) {
     const { q: searchTerm, limit = 10 } = req.query;
     
     if (!searchTerm) {
-      return ResponseHandler.badRequest(res, 'Search term is required');
+      return ResponseHandler.error(res, 400, 'Search term is required');
     }
 
     const blogs = await blogService.searchBlogs(searchTerm, parseInt(limit));
@@ -208,7 +208,7 @@ async function getBlogsByTags(req, res) {
     const { tags } = req.query;
     
     if (!tags) {
-      return ResponseHandler.badRequest(res, 'Tags parameter is required');
+      return ResponseHandler.error(res, 400, 'Tags parameter is required');
     }
 
     const tagsArray = Array.isArray(tags) ? tags : [tags];
