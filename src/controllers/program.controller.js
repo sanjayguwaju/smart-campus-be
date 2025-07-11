@@ -1,83 +1,219 @@
-const ProgramService = require('../services/program.service');
+const programService = require('../services/program.service');
 const ResponseHandler = require('../utils/responseHandler');
-const createError = require('../utils/createError');
-const Program = require('../models/program.model');
-const Department = require('../models/department.model');
+const logger = require('../utils/logger');
 
-// --- CRUD functions used by the router ---
-
+// Get all programs with pagination and filters
 async function getPrograms(req, res) {
   try {
-    const programs = await Program.find().populate('department', 'name');
-    res.json({ success: true, data: programs });
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      department,
+      level,
+      status,
+      isPublished,
+      sortBy = 'name',
+      sortOrder = 'asc'
+    } = req.query;
+
+    const filters = { search, department, level, status, isPublished };
+    const pagination = { page, limit, sortBy, sortOrder };
+
+    const result = await programService.getPrograms(filters, pagination);
+    
+    logger.info(`Programs retrieved: ${result.data.length} programs by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Programs retrieved successfully', result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error retrieving programs:', error);
+    ResponseHandler.error(res, 500, 'Error retrieving programs');
   }
 }
 
+// Get a program by ID
 async function getProgramById(req, res) {
   try {
-    const program = await Program.findById(req.params.id).populate('department', 'name');
-    if (!program) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: program });
+    const program = await programService.getProgramById(req.params.id);
+    
+    logger.info(`Program retrieved: ${program.name} by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Program retrieved successfully', program);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    logger.error('Error retrieving program:', error);
+    if (error.message === 'Program not found') {
+      return ResponseHandler.notFound(res, error.message);
+    }
+    ResponseHandler.error(res, 500, 'Error retrieving program');
   }
 }
 
+// Create a new program
 async function createProgram(req, res) {
   try {
-    const program = new Program(req.body);
-    await program.save();
-    res.status(201).json({ success: true, data: program });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    const program = await programService.createProgram(req.body);
+    logger.info(`Program created: ${program.name} by user: ${req.user.email}`);
+    
+    ResponseHandler.created(res, 'Program created successfully', program);
+  } catch (err) {
+    logger.error('Error creating program:', err);
+    if (err.message.includes('already exists')) {
+      return ResponseHandler.badRequest(res, err.message);
+    }
+    if (err.message === 'Department not found') {
+      return ResponseHandler.badRequest(res, err.message);
+    }
+    ResponseHandler.error(res, 500, 'Error creating program');
   }
 }
 
+// Update a program
 async function updateProgram(req, res) {
   try {
-    const program = await Program.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('department');
-    if (!program) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, data: program });
+    const program = await programService.updateProgram(req.params.id, req.body);
+    
+    logger.info(`Program updated: ${program.name} by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Program updated successfully', program);
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    logger.error('Error updating program:', error);
+    if (error.message === 'Program not found') {
+      return ResponseHandler.notFound(res, error.message);
+    }
+    if (error.message.includes('already exists')) {
+      return ResponseHandler.badRequest(res, error.message);
+    }
+    if (error.message === 'Department not found') {
+      return ResponseHandler.badRequest(res, error.message);
+    }
+    ResponseHandler.error(res, 500, 'Error updating program');
   }
 }
 
+// Delete a program
 async function deleteProgram(req, res) {
   try {
-    const program = await Program.findByIdAndDelete(req.params.id);
-    if (!program) return res.status(404).json({ success: false, error: 'Not found' });
-    res.json({ success: true, message: 'Program deleted' });
+    const result = await programService.deleteProgram(req.params.id);
+    
+    logger.info(`Program deleted by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, result.message);
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    logger.error('Error deleting program:', error);
+    if (error.message === 'Program not found') {
+      return ResponseHandler.notFound(res, error.message);
+    }
+    if (error.message.includes('Cannot delete a published program')) {
+      return ResponseHandler.badRequest(res, error.message);
+    }
+    ResponseHandler.error(res, 500, 'Error deleting program');
   }
 }
 
+// Publish or unpublish a program
 async function publishProgram(req, res) {
   try {
     const { isPublished } = req.body;
+    
     if (typeof isPublished !== 'boolean') {
-      return res.status(400).json({ success: false, error: 'isPublished must be a boolean' });
+      return ResponseHandler.badRequest(res, 'isPublished must be a boolean');
     }
-    const program = await Program.findByIdAndUpdate(
-      req.params.id,
-      { isPublished },
-      { new: true }
-    );
-    if (!program) return res.status(404).json({ success: false, error: 'Program not found' });
-    res.json({ success: true, data: program });
+
+    const program = await programService.publishProgram(req.params.id, isPublished);
+    
+    logger.info(`Program ${isPublished ? 'published' : 'unpublished'}: ${program.name} by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, `Program ${isPublished ? 'published' : 'unpublished'} successfully`, program);
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    logger.error('Error publishing/unpublishing program:', error);
+    if (error.message === 'Program not found') {
+      return ResponseHandler.notFound(res, error.message);
+    }
+    ResponseHandler.error(res, 500, 'Error publishing/unpublishing program');
   }
 }
 
-// --- (Optional) Other advanced functions can be exported as needed ---
+// Get published programs only
+async function getPublishedPrograms(req, res) {
+  try {
+    const programs = await programService.getPublishedPrograms();
+    
+    logger.info(`Published programs retrieved: ${programs.length} programs by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Published programs retrieved successfully', programs);
+  } catch (error) {
+    logger.error('Error retrieving published programs:', error);
+    ResponseHandler.error(res, 500, 'Error retrieving published programs');
+  }
+}
+
+// Get programs by department
+async function getProgramsByDepartment(req, res) {
+  try {
+    const programs = await programService.getProgramsByDepartment(req.params.departmentId);
+    
+    logger.info(`Programs retrieved for department: ${programs.length} programs by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Programs retrieved successfully', programs);
+  } catch (error) {
+    logger.error('Error retrieving programs by department:', error);
+    ResponseHandler.error(res, 500, 'Error retrieving programs by department');
+  }
+}
+
+// Search programs
+async function searchPrograms(req, res) {
+  try {
+    const { q: searchTerm, limit = 10 } = req.query;
+    
+    if (!searchTerm) {
+      return ResponseHandler.badRequest(res, 'Search term is required');
+    }
+
+    const programs = await programService.searchPrograms(searchTerm, parseInt(limit));
+    
+    logger.info(`Program search completed: ${programs.length} results for "${searchTerm}" by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Program search completed successfully', programs);
+  } catch (error) {
+    logger.error('Error searching programs:', error);
+    ResponseHandler.error(res, 500, 'Error searching programs');
+  }
+}
+
+// Get program statistics
+async function getProgramStats(req, res) {
+  try {
+    const stats = await programService.getProgramStats();
+    
+    logger.info(`Program statistics retrieved by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Program statistics retrieved successfully', stats);
+  } catch (error) {
+    logger.error('Error retrieving program statistics:', error);
+    ResponseHandler.error(res, 500, 'Error retrieving program statistics');
+  }
+}
+
+// Get programs by level
+async function getProgramsByLevel(req, res) {
+  try {
+    const { level } = req.params;
+    
+    if (!['Undergraduate', 'Postgraduate'].includes(level)) {
+      return ResponseHandler.badRequest(res, 'Level must be either "Undergraduate" or "Postgraduate"');
+    }
+
+    const programs = await programService.getProgramsByLevel(level);
+    
+    logger.info(`Programs retrieved for level ${level}: ${programs.length} programs by user: ${req.user.email}`);
+    
+    ResponseHandler.success(res, 'Programs retrieved successfully', programs);
+  } catch (error) {
+    logger.error('Error retrieving programs by level:', error);
+    ResponseHandler.error(res, 500, 'Error retrieving programs by level');
+  }
+}
 
 module.exports = {
   getPrograms,
@@ -86,5 +222,9 @@ module.exports = {
   updateProgram,
   deleteProgram,
   publishProgram,
-  // Add other exports as needed
+  getPublishedPrograms,
+  getProgramsByDepartment,
+  searchPrograms,
+  getProgramStats,
+  getProgramsByLevel,
 }; 
