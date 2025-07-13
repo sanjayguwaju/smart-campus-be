@@ -8,11 +8,11 @@ async function createDepartment(req, res) {
     const department = await departmentService.createDepartment(req.body);
     logger.info(`Department created: ${department.name} by user: ${req.user.email}`);
     
-    ResponseHandler.created(res, 'Department created successfully', department);
+    ResponseHandler.success(res, 201, 'Department created successfully', department);
   } catch (err) {
     logger.error('Error creating department:', err);
     if (err.message.includes('already exists')) {
-      return ResponseHandler.badRequest(res, err.message);
+      return ResponseHandler.error(res, 400, err.message);
     }
     ResponseHandler.error(res, 500, 'Error creating department');
   }
@@ -75,7 +75,7 @@ async function updateDepartment(req, res) {
       return ResponseHandler.notFound(res, error.message);
     }
     if (error.message.includes('already exists')) {
-      return ResponseHandler.badRequest(res, error.message);
+      return ResponseHandler.error(res, 400, error.message);
     }
     ResponseHandler.error(res, 500, 'Error updating department');
   }
@@ -95,7 +95,7 @@ async function deleteDepartment(req, res) {
       return ResponseHandler.notFound(res, error.message);
     }
     if (error.message.includes('Cannot delete department')) {
-      return ResponseHandler.badRequest(res, error.message);
+      return ResponseHandler.error(res, 400, error.message);
     }
     ResponseHandler.error(res, 500, 'Error deleting department');
   }
@@ -152,7 +152,7 @@ async function searchDepartments(req, res) {
     const { q: searchTerm, limit = 10 } = req.query;
     
     if (!searchTerm) {
-      return ResponseHandler.badRequest(res, 'Search term is required');
+      return ResponseHandler.error(res, 400, 'Search term is required');
     }
 
     const departments = await departmentService.searchDepartments(searchTerm, parseInt(limit));

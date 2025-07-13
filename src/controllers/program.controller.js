@@ -54,14 +54,14 @@ async function createProgram(req, res) {
     const program = await programService.createProgram(req.body);
     logger.info(`Program created: ${program.name} by user: ${req.user.email}`);
     
-    ResponseHandler.created(res, 'Program created successfully', program);
+    ResponseHandler.success(res, 201, 'Program created successfully', program);
   } catch (err) {
     logger.error('Error creating program:', err);
     if (err.message.includes('already exists')) {
-      return ResponseHandler.badRequest(res, err.message);
+      return ResponseHandler.error(res, 400, err.message);
     }
     if (err.message === 'Department not found') {
-      return ResponseHandler.badRequest(res, err.message);
+      return ResponseHandler.error(res, 400, err.message);
     }
     ResponseHandler.error(res, 500, 'Error creating program');
   }
@@ -81,10 +81,10 @@ async function updateProgram(req, res) {
       return ResponseHandler.notFound(res, error.message);
     }
     if (error.message.includes('already exists')) {
-      return ResponseHandler.badRequest(res, error.message);
+      return ResponseHandler.error(res, 400, error.message);
     }
     if (error.message === 'Department not found') {
-      return ResponseHandler.badRequest(res, error.message);
+      return ResponseHandler.error(res, 400, error.message);
     }
     ResponseHandler.error(res, 500, 'Error updating program');
   }
@@ -104,7 +104,7 @@ async function deleteProgram(req, res) {
       return ResponseHandler.notFound(res, error.message);
     }
     if (error.message.includes('Cannot delete a published program')) {
-      return ResponseHandler.badRequest(res, error.message);
+      return ResponseHandler.error(res, 400, error.message);
     }
     ResponseHandler.error(res, 500, 'Error deleting program');
   }
@@ -116,7 +116,7 @@ async function publishProgram(req, res) {
     const { isPublished } = req.body;
     
     if (typeof isPublished !== 'boolean') {
-      return ResponseHandler.badRequest(res, 'isPublished must be a boolean');
+      return ResponseHandler.error(res, 400, 'isPublished must be a boolean');
     }
 
     const program = await programService.publishProgram(req.params.id, isPublished);
@@ -167,7 +167,7 @@ async function searchPrograms(req, res) {
     const { q: searchTerm, limit = 10 } = req.query;
     
     if (!searchTerm) {
-      return ResponseHandler.badRequest(res, 'Search term is required');
+      return ResponseHandler.error(res, 400, 'Search term is required');
     }
 
     const programs = await programService.searchPrograms(searchTerm, parseInt(limit));
@@ -201,7 +201,7 @@ async function getProgramsByLevel(req, res) {
     const { level } = req.params;
     
     if (!['Undergraduate', 'Postgraduate'].includes(level)) {
-      return ResponseHandler.badRequest(res, 'Level must be either "Undergraduate" or "Postgraduate"');
+      return ResponseHandler.error(res, 400, 'Level must be either "Undergraduate" or "Postgraduate"');
     }
 
     const programs = await programService.getProgramsByLevel(level);
