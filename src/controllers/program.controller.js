@@ -22,9 +22,16 @@ async function getPrograms(req, res) {
 
     const result = await programService.getPrograms(filters, pagination);
     
-    logger.info(`Programs retrieved: ${result.data.length} programs by user: ${req.user.email}`);
+    logger.info(`Programs retrieved: ${result?.data?.length} programs by user: ${req?.user?.email}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Programs retrieved successfully',
+      data: result?.data,
+      pagination: result?.pagination
+    });
     
-    ResponseHandler.success(res, 'Programs retrieved successfully', result);
+    // ResponseHandler.success(res, 'Programs retrieved successfully', result);
   } catch (error) {
     logger.error('Error retrieving programs:', error);
     ResponseHandler.error(res, 500, 'Error retrieving programs');
