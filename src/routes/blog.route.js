@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
+const multer = require("multer");
+const path = require("path");
 
 // Import controllers
 const {
@@ -19,12 +19,12 @@ const {
   getBlogStats,
   getRecentBlogs,
   getPopularTags,
-} = require('../controllers/blog.controller');
+} = require("../controllers/blog.controller");
 
 // Import middleware
-const { authenticate } = require('../middleware/auth.middleware');
-const { authorize } = require('../middleware/auth.middleware');
-const upload = require('../middleware/upload.middleware');
+const { authenticate } = require("../middleware/auth.middleware");
+const { authorize } = require("../middleware/auth.middleware");
+const { upload } = require("../middleware/upload.middleware");
 
 // Import validation
 const {
@@ -39,7 +39,7 @@ const {
   validateRecentBlogsQuery,
   validatePopularTagsQuery,
   validatePublishBlog,
-} = require('../validation/blog.validation');
+} = require("../validation/blog.validation");
 
 /**
  * @swagger
@@ -260,7 +260,7 @@ const {
  *       500:
  *         description: Internal server error
  */
-router.get('/', authenticate, validateBlogQuery, getBlogs);
+router.get("/", authenticate, validateBlogQuery, getBlogs);
 
 /**
  * @swagger
@@ -291,7 +291,7 @@ router.get('/', authenticate, validateBlogQuery, getBlogs);
  *       500:
  *         description: Internal server error
  */
-router.get('/published', authenticate, getPublishedBlogs);
+router.get("/published", authenticate, getPublishedBlogs);
 
 /**
  * @swagger
@@ -341,7 +341,7 @@ router.get('/published', authenticate, getPublishedBlogs);
  *       500:
  *         description: Internal server error
  */
-router.get('/search', authenticate, validateSearchQuery, searchBlogs);
+router.get("/search", authenticate, validateSearchQuery, searchBlogs);
 
 /**
  * @swagger
@@ -383,7 +383,7 @@ router.get('/search', authenticate, validateSearchQuery, searchBlogs);
  *       500:
  *         description: Internal server error
  */
-router.get('/tags', authenticate, validateTagsQuery, getBlogsByTags);
+router.get("/tags", authenticate, validateTagsQuery, getBlogsByTags);
 
 /**
  * @swagger
@@ -423,7 +423,7 @@ router.get('/tags', authenticate, validateTagsQuery, getBlogsByTags);
  *       500:
  *         description: Internal server error
  */
-router.get('/recent', authenticate, validateRecentBlogsQuery, getRecentBlogs);
+router.get("/recent", authenticate, validateRecentBlogsQuery, getRecentBlogs);
 
 /**
  * @swagger
@@ -463,7 +463,12 @@ router.get('/recent', authenticate, validateRecentBlogsQuery, getRecentBlogs);
  *       500:
  *         description: Internal server error
  */
-router.get('/popular-tags', authenticate, validatePopularTagsQuery, getPopularTags);
+router.get(
+  "/popular-tags",
+  authenticate,
+  validatePopularTagsQuery,
+  getPopularTags
+);
 
 /**
  * @swagger
@@ -492,7 +497,12 @@ router.get('/popular-tags', authenticate, validatePopularTagsQuery, getPopularTa
  *       500:
  *         description: Internal server error
  */
-router.get('/stats', authenticate, authorize(['admin', 'moderator']), getBlogStats);
+router.get(
+  "/stats",
+  authenticate,
+  authorize(["admin", "moderator"]),
+  getBlogStats
+);
 
 /**
  * @swagger
@@ -534,7 +544,7 @@ router.get('/stats', authenticate, authorize(['admin', 'moderator']), getBlogSta
  *       500:
  *         description: Internal server error
  */
-router.get('/author/:author', authenticate, validateAuthor, getBlogsByAuthor);
+router.get("/author/:author", authenticate, validateAuthor, getBlogsByAuthor);
 
 /**
  * @swagger
@@ -576,7 +586,7 @@ router.get('/author/:author', authenticate, validateAuthor, getBlogsByAuthor);
  *       500:
  *         description: Internal server error
  */
-router.get('/slug/:slug', authenticate, validateBlogSlug, getBlogBySlug);
+router.get("/slug/:slug", authenticate, validateBlogSlug, getBlogBySlug);
 
 /**
  * @swagger
@@ -617,7 +627,7 @@ router.get('/slug/:slug', authenticate, validateBlogSlug, getBlogBySlug);
  *       500:
  *         description: Internal server error
  */
-router.get('/:id', authenticate, validateBlogId, getBlogById);
+router.get("/:id", authenticate, validateBlogId, getBlogById);
 
 /**
  * @swagger
@@ -714,11 +724,12 @@ router.get('/:id', authenticate, validateBlogId, getBlogById);
  *       500:
  *         description: Internal server error
  */
-router.post('/', 
-  authenticate, 
-  authorize(['admin', 'moderator', 'author']), 
-  upload.single('coverImage'),
-  validateBlogCreation, 
+router.post(
+  "/",
+  authenticate,
+  authorize(["admin", "moderator", "author"]),
+  upload.single("coverImage"),
+  validateBlogCreation,
   createBlog
 );
 
@@ -822,12 +833,13 @@ router.post('/',
  *       500:
  *         description: Internal server error
  */
-router.put('/:id', 
-  authenticate, 
-  authorize(['admin', 'moderator', 'author']), 
-  upload.single('coverImage'),
+router.put(
+  "/:id",
+  authenticate,
+  authorize(["admin", "moderator", "author"]),
+  upload.single("coverImage"),
   validateBlogId,
-  validateBlogUpdate, 
+  validateBlogUpdate,
   updateBlog
 );
 
@@ -884,10 +896,11 @@ router.put('/:id',
  *       500:
  *         description: Internal server error
  */
-router.put('/:id/publish', 
-  authenticate, 
-  authorize(['admin', 'moderator']), 
-  validatePublishBlog, 
+router.put(
+  "/:id/publish",
+  authenticate,
+  authorize(["admin", "moderator"]),
+  validatePublishBlog,
   publishBlog
 );
 
@@ -930,11 +943,12 @@ router.put('/:id/publish',
  *       500:
  *         description: Internal server error
  */
-router.delete('/:id', 
-  authenticate, 
-  authorize(['admin', 'moderator']), 
-  validateBlogId, 
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(["admin", "moderator"]),
+  validateBlogId,
   deleteBlog
 );
 
-module.exports = router; 
+module.exports = router;
