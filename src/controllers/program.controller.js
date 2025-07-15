@@ -22,9 +22,10 @@ async function getPrograms(req, res) {
 
     const result = await programService.getPrograms(filters, pagination);
     
-    logger.info(`Programs retrieved: ${result.data.length} programs by user: ${req.user.email}`);
-    
-    ResponseHandler.success(res, 'Programs retrieved successfully', result);
+    logger.info(`Programs retrieved: ${result?.data?.length} programs by user: ${req?.user?.email}`);
+
+    // Return programs data with pagination at the same level
+    ResponseHandler.success(res, 200, 'Programs retrieved successfully', result.data, result.pagination);
   } catch (error) {
     logger.error('Error retrieving programs:', error);
     ResponseHandler.error(res, 500, 'Error retrieving programs');
@@ -38,7 +39,7 @@ async function getProgramById(req, res) {
     
     logger.info(`Program retrieved: ${program.name} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Program retrieved successfully', program);
+    ResponseHandler.success(res, 200, 'Program retrieved successfully', program);
   } catch (error) {
     logger.error('Error retrieving program:', error);
     if (error.message === 'Program not found') {
@@ -74,7 +75,7 @@ async function updateProgram(req, res) {
     
     logger.info(`Program updated: ${program.name} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Program updated successfully', program);
+    ResponseHandler.success(res, 200, 'Program updated successfully', program);
   } catch (error) {
     logger.error('Error updating program:', error);
     if (error.message === 'Program not found') {
@@ -97,7 +98,7 @@ async function deleteProgram(req, res) {
     
     logger.info(`Program deleted by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, result.message);
+    ResponseHandler.success(res, 200, result.message);
   } catch (error) {
     logger.error('Error deleting program:', error);
     if (error.message === 'Program not found') {
@@ -123,7 +124,7 @@ async function publishProgram(req, res) {
     
     logger.info(`Program ${isPublished ? 'published' : 'unpublished'}: ${program.name} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, `Program ${isPublished ? 'published' : 'unpublished'} successfully`, program);
+    ResponseHandler.success(res, 200, `Program ${isPublished ? 'published' : 'unpublished'} successfully`, program);
   } catch (error) {
     logger.error('Error publishing/unpublishing program:', error);
     if (error.message === 'Program not found') {
@@ -140,7 +141,7 @@ async function getPublishedPrograms(req, res) {
     
     logger.info(`Published programs retrieved: ${programs.length} programs by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Published programs retrieved successfully', programs);
+    ResponseHandler.success(res, 200, 'Published programs retrieved successfully', programs);
   } catch (error) {
     logger.error('Error retrieving published programs:', error);
     ResponseHandler.error(res, 500, 'Error retrieving published programs');
@@ -154,7 +155,7 @@ async function getProgramsByDepartment(req, res) {
     
     logger.info(`Programs retrieved for department: ${programs.length} programs by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Programs retrieved successfully', programs);
+    ResponseHandler.success(res, 200, 'Programs retrieved successfully', programs);
   } catch (error) {
     logger.error('Error retrieving programs by department:', error);
     ResponseHandler.error(res, 500, 'Error retrieving programs by department');
@@ -174,7 +175,7 @@ async function searchPrograms(req, res) {
     
     logger.info(`Program search completed: ${programs.length} results for "${searchTerm}" by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Program search completed successfully', programs);
+    ResponseHandler.success(res, 200, 'Program search completed successfully', programs);
   } catch (error) {
     logger.error('Error searching programs:', error);
     ResponseHandler.error(res, 500, 'Error searching programs');
@@ -188,7 +189,7 @@ async function getProgramStats(req, res) {
     
     logger.info(`Program statistics retrieved by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Program statistics retrieved successfully', stats);
+    ResponseHandler.success(res, 200, 'Program statistics retrieved successfully', stats);
   } catch (error) {
     logger.error('Error retrieving program statistics:', error);
     ResponseHandler.error(res, 500, 'Error retrieving program statistics');
@@ -208,7 +209,7 @@ async function getProgramsByLevel(req, res) {
     
     logger.info(`Programs retrieved for level ${level}: ${programs.length} programs by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Programs retrieved successfully', programs);
+    ResponseHandler.success(res, 200, 'Programs retrieved successfully', programs);
   } catch (error) {
     logger.error('Error retrieving programs by level:', error);
     ResponseHandler.error(res, 500, 'Error retrieving programs by level');

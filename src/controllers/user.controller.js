@@ -29,7 +29,8 @@ class UserController {
 
       const result = await userService.getUsers(filters, pagination);
 
-      return ResponseHandler.success(res, 200, 'Users retrieved successfully', result);
+      // Return users data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Users retrieved successfully', result.users, result.pagination);
     } catch (error) {
       logger.error('Get users error:', error);
       return ResponseHandler.error(res, 500, 'Failed to retrieve users');
@@ -295,7 +296,8 @@ class UserController {
 
       const result = await userService.getUsers(filters, pagination);
 
-      return ResponseHandler.success(res, 200, 'Search completed successfully', result);
+      // Return users data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Search completed successfully', result.users, result.pagination);
     } catch (error) {
       logger.error('Search users error:', error);
       return ResponseHandler.error(res, 500, 'Failed to search users');
@@ -331,7 +333,8 @@ class UserController {
         return ResponseHandler.error(res, 501, 'CSV export not implemented yet');
       }
 
-      return ResponseHandler.success(res, 200, 'Users exported successfully', result.users);
+      // Return users data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Users exported successfully', result.users, result.pagination);
     } catch (error) {
       logger.error('Export users error:', error);
       return ResponseHandler.error(res, 500, 'Failed to export users');

@@ -239,7 +239,8 @@ class EventController {
 
       const result = await eventService.getEvents(filters, pagination);
 
-      return ResponseHandler.success(res, 200, 'Events retrieved successfully', result);
+      // Return events data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Events retrieved successfully', result.events, result.pagination);
     } catch (error) {
       logger.error('Get events error:', error);
       return ResponseHandler.error(res, 500, 'Failed to retrieve events');
@@ -734,7 +735,8 @@ class EventController {
 
       const result = await eventService.getEventsByOrganizer(organizerId, filters);
 
-      return ResponseHandler.success(res, 200, 'Events by organizer retrieved successfully', result);
+      // Return events data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Events by organizer retrieved successfully', result.events, result.pagination);
     } catch (error) {
       logger.error('Get events by organizer error:', error);
       return ResponseHandler.error(res, 500, 'Failed to retrieve events by organizer');
@@ -785,7 +787,8 @@ class EventController {
 
       const result = await eventService.getUserRegisteredEvents(userId, filters);
 
-      return ResponseHandler.success(res, 200, 'User\'s registered events retrieved successfully', result);
+      // Return events data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'User\'s registered events retrieved successfully', result.events, result.pagination);
     } catch (error) {
       logger.error('Get user registered events error:', error);
       return ResponseHandler.error(res, 500, 'Failed to retrieve user\'s registered events');
@@ -875,7 +878,8 @@ class EventController {
 
       const result = await eventService.searchEvents(query, filters);
 
-      return ResponseHandler.success(res, 200, 'Search results retrieved successfully', result);
+      // Return events data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Search results retrieved successfully', result.events, result.pagination);
     } catch (error) {
       logger.error('Search events error:', error);
       return ResponseHandler.error(res, 500, 'Failed to search events');
@@ -1070,7 +1074,8 @@ class EventController {
 
       const result = await eventService.getEventReviews(eventId, filters);
 
-      return ResponseHandler.success(res, 200, 'Event reviews retrieved successfully', result);
+      // Return reviews data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Event reviews retrieved successfully', result.reviews, result.pagination);
     } catch (error) {
       logger.error('Get event reviews error:', error);
       return ResponseHandler.error(res, 500, 'Failed to retrieve event reviews');
@@ -1186,7 +1191,8 @@ class EventController {
 
       const result = await eventService.getMyEvents(userId, filters);
 
-      return ResponseHandler.success(res, 200, 'User\'s events retrieved successfully', result);
+      // Return events data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'User\'s events retrieved successfully', result.events, result.pagination);
     } catch (error) {
       logger.error('Get my events error:', error);
       return ResponseHandler.error(res, 500, 'Failed to retrieve user\'s events');

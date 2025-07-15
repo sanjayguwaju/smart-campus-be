@@ -34,7 +34,8 @@ class CourseController {
 
       const result = await courseService.getCourses(filters, pagination);
 
-      return ResponseHandler.success(res, 200, 'Courses retrieved successfully', result);
+      // Return courses data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Courses retrieved successfully', result.courses, result.pagination);
     } catch (error) {
       logger.error('Get courses error:', error);
       return ResponseHandler.error(res, 500, 'Failed to retrieve courses');
@@ -400,7 +401,8 @@ class CourseController {
 
       const result = await courseService.getCourses(filters, pagination);
 
-      return ResponseHandler.success(res, 200, 'Search completed successfully', result);
+      // Return courses data with pagination at the same level
+      return ResponseHandler.success(res, 200, 'Search completed successfully', result.courses, result.pagination);
     } catch (error) {
       logger.error('Search courses error:', error);
       return ResponseHandler.error(res, 500, 'Failed to search courses');

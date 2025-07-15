@@ -103,7 +103,8 @@ class ProgramService {
         .populate('department', 'name code')
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit))
+        .lean();
 
       // Get total count for pagination
       const total = await Program.countDocuments(query);
