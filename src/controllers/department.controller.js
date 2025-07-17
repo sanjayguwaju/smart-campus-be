@@ -38,7 +38,7 @@ async function getDepartments(req, res) {
     logger.info(`Departments retrieved: ${result.data.length} departments by user: ${req.user.email}`);
     
     // Return departments data with pagination at the same level
-    ResponseHandler.success(res, 'Departments retrieved successfully', result.data, result.pagination);
+    ResponseHandler.success(res, 200,'Departments retrieved successfully', result.data, result.pagination);
   } catch (error) {
     logger.error('Error retrieving departments:', error);
     ResponseHandler.error(res, 500, 'Error retrieving departments');

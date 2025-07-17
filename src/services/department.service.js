@@ -83,7 +83,8 @@ class DepartmentService {
       const departments = await Department.find(query)
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit))
+        .lean();
 
       // Get total count for pagination
       const total = await Department.countDocuments(query);
