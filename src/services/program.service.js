@@ -24,7 +24,8 @@ class ProgramService {
         image: programData.image,
         brochureUrl: programData.brochureUrl,
         isPublished: programData.isPublished !== undefined ? programData.isPublished : false,
-        status: programData.status || 'draft'
+        status: programData.status || 'draft',
+        createdBy: programData.createdBy,
       };
 
       // Validate department exists
@@ -45,6 +46,7 @@ class ProgramService {
 
       const program = await Program.create(data);
       await program.populate('department', 'name code');
+      await program.populate('createdBy', 'firstName lastName email');
       
       logger.info(`Program created: ${program.name} in department: ${department.name}`);
       return program;
@@ -101,6 +103,7 @@ class ProgramService {
       // Execute query with pagination
       const programs = await Program.find(query)
         .populate('department', 'name code')
+        .populate('createdBy', 'firstName lastName email')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit))
@@ -136,6 +139,9 @@ class ProgramService {
   async getProgramById(programId) {
     try {
       const program = await Program.findById(programId).populate('department', 'name code');
+      if (program) {
+        await program.populate('createdBy', 'firstName lastName email');
+      }
       
       if (!program) {
         throw new Error('Program not found');

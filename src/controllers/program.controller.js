@@ -52,7 +52,11 @@ async function getProgramById(req, res) {
 // Create a new program
 async function createProgram(req, res) {
   try {
-    const program = await programService.createProgram(req.body);
+    console.log('req.user:', req.user);
+    const program = await programService.createProgram({
+      ...req.body,
+      createdBy: req.user && req.user._id ? req.user._id : undefined
+    });
     logger.info(`Program created: ${program.name} by user: ${req.user.email}`);
     
     ResponseHandler.success(res, 201, 'Program created successfully', program);
