@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const noticeController = require('../controllers/notice.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const noticeController = require("../controllers/notice.controller");
+const authMiddleware = require("../middleware/auth.middleware");
 const {
   validateNotice,
   validateNoticeUpdate,
@@ -12,8 +12,8 @@ const {
   validateCommentId,
   validateEngagementAction,
   validateBulkOperation,
-  validateStatisticsQuery
-} = require('../validation/notice.validation');
+  validateStatisticsQuery,
+} = require("../validation/notice.validation");
 
 /**
  * @swagger
@@ -388,7 +388,7 @@ const {
  *                         hasPrevPage:
  *                           type: boolean
  */
-router.get('/', validateNoticeQuery, noticeController.getAllNotices);
+router.get("/", validateNoticeQuery, noticeController.getAllNotices);
 
 /**
  * @swagger
@@ -418,7 +418,7 @@ router.get('/', validateNoticeQuery, noticeController.getAllNotices);
  *       404:
  *         description: Notice not found
  */
-router.get('/:id', validateNoticeId, noticeController.getNoticeById);
+router.get("/:id", validateNoticeId, noticeController.getNoticeById);
 
 /**
  * @swagger
@@ -505,7 +505,13 @@ router.get('/:id', validateNoticeId, noticeController.getNoticeById);
  *       403:
  *         description: Forbidden - Insufficient permissions
  */
-router.post('/', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty', 'staff']), validateNotice, noticeController.createNotice);
+router.post(
+  "/",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["admin", "faculty", "staff"]),
+  validateNotice,
+  noticeController.createNotice
+);
 
 /**
  * @swagger
@@ -575,7 +581,13 @@ router.post('/', authMiddleware.authenticate, authMiddleware.authorize(['admin',
  *       404:
  *         description: Notice not found
  */
-router.put('/:id', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty', 'staff']), validateNoticeUpdate, noticeController.updateNotice);
+router.put(
+  "/:id",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["admin", "faculty", "staff"]),
+  validateNoticeUpdate,
+  noticeController.updateNotice
+);
 
 /**
  * @swagger
@@ -611,7 +623,13 @@ router.put('/:id', authMiddleware.authenticate, authMiddleware.authorize(['admin
  *       404:
  *         description: Notice not found
  */
-router.delete('/:id', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty', 'staff']), validateNoticeId, noticeController.deleteNotice);
+router.delete(
+  "/:id",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["admin", "faculty", "staff"]),
+  validateNoticeId,
+  noticeController.deleteNotice
+);
 
 /**
  * @swagger
@@ -652,7 +670,12 @@ router.delete('/:id', authMiddleware.authenticate, authMiddleware.authorize(['ad
  *       404:
  *         description: Notice not found
  */
-router.post('/:id/like', authMiddleware.authenticate, validateEngagementAction, noticeController.toggleLike);
+router.post(
+  "/:id/like",
+  authMiddleware.authenticate,
+  validateEngagementAction,
+  noticeController.toggleLike
+);
 
 /**
  * @swagger
@@ -693,7 +716,12 @@ router.post('/:id/like', authMiddleware.authenticate, validateEngagementAction, 
  *       404:
  *         description: Notice not found
  */
-router.post('/:id/bookmark', authMiddleware.authenticate, validateEngagementAction, noticeController.toggleBookmark);
+router.post(
+  "/:id/bookmark",
+  authMiddleware.authenticate,
+  validateEngagementAction,
+  noticeController.toggleBookmark
+);
 
 /**
  * @swagger
@@ -756,7 +784,12 @@ router.post('/:id/bookmark', authMiddleware.authenticate, validateEngagementActi
  *       404:
  *         description: Notice not found
  */
-router.post('/:id/comments', authMiddleware.authenticate, validateComment, noticeController.addComment);
+router.post(
+  "/:id/comments",
+  authMiddleware.authenticate,
+  validateComment,
+  noticeController.addComment
+);
 
 /**
  * @swagger
@@ -804,7 +837,12 @@ router.post('/:id/comments', authMiddleware.authenticate, validateComment, notic
  *       404:
  *         description: Notice or comment not found
  */
-router.put('/:id/comments/:commentId', authMiddleware.authenticate, validateCommentUpdate, noticeController.updateComment);
+router.put(
+  "/:id/comments/:commentId",
+  authMiddleware.authenticate,
+  validateCommentUpdate,
+  noticeController.updateComment
+);
 
 /**
  * @swagger
@@ -837,7 +875,12 @@ router.put('/:id/comments/:commentId', authMiddleware.authenticate, validateComm
  *       404:
  *         description: Notice or comment not found
  */
-router.delete('/:id/comments/:commentId', authMiddleware.authenticate, validateCommentId, noticeController.deleteComment);
+router.delete(
+  "/:id/comments/:commentId",
+  authMiddleware.authenticate,
+  validateCommentId,
+  noticeController.deleteComment
+);
 
 /**
  * @swagger
@@ -860,7 +903,7 @@ router.delete('/:id/comments/:commentId', authMiddleware.authenticate, validateC
  *                   items:
  *                     $ref: '#/components/schemas/Notice'
  */
-router.get('/urgent', noticeController.getUrgentNotices);
+router.get("/urgent", noticeController.getUrgentNotices);
 
 /**
  * @swagger
@@ -883,7 +926,7 @@ router.get('/urgent', noticeController.getUrgentNotices);
  *                   items:
  *                     $ref: '#/components/schemas/Notice'
  */
-router.get('/featured', noticeController.getFeaturedNotices);
+router.get("/featured", noticeController.getFeaturedNotices);
 
 /**
  * @swagger
@@ -925,7 +968,7 @@ router.get('/featured', noticeController.getFeaturedNotices);
  *       400:
  *         description: Search term is required
  */
-router.get('/search', noticeController.searchNotices);
+router.get("/search", noticeController.searchNotices);
 
 /**
  * @swagger
@@ -970,7 +1013,11 @@ router.get('/search', noticeController.searchNotices);
  *       401:
  *         description: Unauthorized
  */
-router.get('/bookmarked', authMiddleware.authenticate, noticeController.getBookmarkedNotices);
+router.get(
+  "/bookmarked",
+  authMiddleware.authenticate,
+  noticeController.getBookmarkedNotices
+);
 
 /**
  * @swagger
@@ -1039,7 +1086,13 @@ router.get('/bookmarked', authMiddleware.authenticate, noticeController.getBookm
  *       404:
  *         description: Notice not found
  */
-router.get('/:id/statistics', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty', 'staff']), validateStatisticsQuery, noticeController.getNoticeStatistics);
+router.get(
+  "/:id/statistics",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["admin", "faculty", "staff"]),
+  validateStatisticsQuery,
+  noticeController.getNoticeStatistics
+);
 
 /**
  * @swagger
@@ -1092,6 +1145,29 @@ router.get('/:id/statistics', authMiddleware.authenticate, authMiddleware.author
  *       403:
  *         description: Forbidden - Insufficient permissions
  */
-router.post('/bulk', authMiddleware.authenticate, authMiddleware.authorize(['admin', 'faculty']), validateBulkOperation, noticeController.bulkOperation);
+// Bulk operations route
+router.post(
+  "/bulk",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["admin", "faculty"]),
+  validateBulkOperation,
+  noticeController.bulkOperation
+);
 
-module.exports = router; 
+// Individual notice publish route - support both PUT and PATCH methods
+router.patch(
+  "/:id/publish",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["admin", "faculty"]),
+  validateNoticeId,
+  noticeController.publishNotice
+);
+router.put(
+  "/:id/publish",
+  authMiddleware.authenticate,
+  authMiddleware.authorize(["admin", "faculty"]),
+  validateNoticeId,
+  noticeController.publishNotice
+);
+
+module.exports = router;
