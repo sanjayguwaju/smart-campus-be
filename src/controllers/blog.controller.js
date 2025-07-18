@@ -69,6 +69,10 @@ async function getBlogBySlug(req, res) {
 // Create a new blog
 async function createBlog(req, res) {
   try {
+    // Ensure tags is always an array
+    if (req.body.tags && !Array.isArray(req.body.tags)) {
+      req.body.tags = [req.body.tags];
+    }
     const blogData = {
       ...req.body,
       coverImage: req.file ? req.file.path : req.body.coverImage
