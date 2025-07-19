@@ -69,7 +69,7 @@ async function updateDepartment(req, res) {
     
     logger.info(`Department updated: ${department.name} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Department updated successfully', department);
+    ResponseHandler.success(res, 200, 'Department updated successfully', department);
   } catch (error) {
     logger.error('Error updating department:', error);
     if (error.message === 'Department not found') {

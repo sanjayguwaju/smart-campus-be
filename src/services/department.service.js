@@ -1,6 +1,7 @@
 const Department = require('../models/department.model');
 const Course = require('../models/course.model');
 const User = require('../models/user.model');
+const Program = require('../models/program.model');
 const logger = require('../utils/logger');
 
 /**
@@ -200,16 +201,19 @@ class DepartmentService {
         throw new Error('Department not found');
       }
 
-      // Check if department is being used by any courses or users
-      const [coursesUsingDept, usersUsingDept] = await Promise.all([
+      // Check if department is being used by any programs, courses, or users
+      const [programsUsingDept, coursesUsingDept, usersUsingDept] = await Promise.all([
+        Program.countDocuments({ department: departmentId }),
         Course.countDocuments({ department: departmentId }),
         User.countDocuments({ department: departmentId })
       ]);
 
-      if (coursesUsingDept > 0 || usersUsingDept > 0) {
-        throw new Error(
-          `Cannot delete department. It is being used by ${coursesUsingDept} courses and ${usersUsingDept} users.`
-        );
+      if (programsUsingDept > 0 || coursesUsingDept > 0 || usersUsingDept > 0) {
+        let usageMsg = 'Cannot delete department. It is being used by:';
+        if (programsUsingDept > 0) usageMsg += `\n- ${programsUsingDept} program(s)`;
+        if (coursesUsingDept > 0) usageMsg += `\n- ${coursesUsingDept} course(s)`;
+        if (usersUsingDept > 0) usageMsg += `\n- ${usersUsingDept} user(s)`;
+        throw new Error(usageMsg);
       }
 
       await Department.findByIdAndDelete(departmentId);
