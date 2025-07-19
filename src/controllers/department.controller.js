@@ -89,16 +89,17 @@ async function deleteDepartment(req, res) {
     
     logger.info(`Department deleted by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, result.message);
+    ResponseHandler.success(res, 200, result.message);
   } catch (error) {
     logger.error('Error deleting department:', error);
     if (error.message === 'Department not found') {
-      return ResponseHandler.notFound(res, error.message);
+      return ResponseHandler.notFound(res, 'The department you are trying to delete does not exist or has already been deleted.');
     }
     if (error.message.includes('Cannot delete department')) {
       return ResponseHandler.error(res, 400, error.message);
     }
-    ResponseHandler.error(res, 500, 'Error deleting department');
+    // Improved: Return the actual error message for unexpected errors
+    return ResponseHandler.error(res, 500, error.message || 'An unexpected error occurred while deleting the department.');
   }
 }
 
