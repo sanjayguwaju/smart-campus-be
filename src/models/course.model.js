@@ -7,7 +7,7 @@ const courseSchema = new mongoose.Schema({
   program: { type: mongoose.Schema.Types.ObjectId, ref: 'Program', required: true },
   department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
   semester: { type: Number, required: true },
-  semesterTerm: { type: String, enum: ['Fall', 'Spring', 'Summer', 'Winter'], required: true },
+  semesterTerm: { type: String, enum: ['Fall', 'Spring', 'Summer', 'Winter'] }, // optional
   faculty: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   description: { type: String },
   creditHours: { type: Number, required: true },

@@ -112,7 +112,7 @@ router.get('/:courseId', authenticate, validateCourseId, canAccessCourse, course
  *               - title
  *               - code
  *               - description
- *               - instructor
+ *               - faculty
  *               - department
  *               - credits
  *               - semester
@@ -125,7 +125,7 @@ router.get('/:courseId', authenticate, validateCourseId, canAccessCourse, course
  *                 type: string
  *               description:
  *                 type: string
- *               instructor:
+ *               faculty:
  *                 type: string
  *               department:
  *                 type: string
@@ -173,7 +173,7 @@ router.post('/', authenticate, requireFacultyOrAdmin, validateCourseCreation, co
  *                 type: string
  *               description:
  *                 type: string
- *               instructor:
+ *               faculty:
  *                 type: string
  *               department:
  *                 type: string
