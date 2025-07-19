@@ -73,9 +73,20 @@ async function createBlog(req, res) {
     if (req.body.tags && !Array.isArray(req.body.tags)) {
       req.body.tags = [req.body.tags];
     }
+    
+    // Handle coverImage - could be a file upload or a URL string
+    let coverImage = null;
+    if (req.file) {
+      // File was uploaded via multer
+      coverImage = req.file.path;
+    } else if (req.body.coverImage) {
+      // URL was sent as string in form data
+      coverImage = req.body.coverImage;
+    }
+    
     const blogData = {
       ...req.body,
-      coverImage: req.file ? req.file.path : req.body.coverImage
+      coverImage: coverImage
     };
 
     const blog = await blogService.createBlog(blogData);
@@ -94,9 +105,19 @@ async function createBlog(req, res) {
 // Update a blog
 async function updateBlog(req, res) {
   try {
+    // Handle coverImage - could be a file upload or a URL string
+    let coverImage = null;
+    if (req.file) {
+      // File was uploaded via multer
+      coverImage = req.file.path;
+    } else if (req.body.coverImage) {
+      // URL was sent as string in form data
+      coverImage = req.body.coverImage;
+    }
+    
     const updateData = {
       ...req.body,
-      coverImage: req.file ? req.file.path : req.body.coverImage
+      coverImage: coverImage
     };
 
     const blog = await blogService.updateBlog(req.params.id, updateData);

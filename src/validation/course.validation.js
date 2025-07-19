@@ -44,9 +44,9 @@ const validateCourseCreation = [
     .isLength({ max: 1000 })
     .withMessage('Course description cannot exceed 1000 characters'),
   
-  body('instructor')
+  body('faculty')
     .isMongoId()
-    .withMessage('Invalid instructor ID format'),
+    .withMessage('Invalid faculty ID format'),
   
   body('department')
     .trim()
@@ -64,6 +64,7 @@ const validateCourseCreation = [
     .withMessage('Semester must be a number between 1 and 12'),
   
   body('semesterTerm')
+    .optional()
     .isIn(['Fall', 'Spring', 'Summer', 'Winter'])
     .withMessage('Semester term must be Fall, Spring, Summer, or Winter'),
   
@@ -155,10 +156,10 @@ const validateCourseUpdate = [
     .isLength({ max: 1000 })
     .withMessage('Course description cannot exceed 1000 characters'),
   
-  body('instructor')
+  body('faculty')
     .optional()
     .isMongoId()
-    .withMessage('Invalid instructor ID format'),
+    .withMessage('Invalid faculty ID format'),
   
   body('department')
     .optional()
