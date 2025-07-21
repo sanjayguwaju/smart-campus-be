@@ -99,6 +99,7 @@ const validateDepartmentUpdate = (req, res, next) => {
       .min(2)
       .max(10)
       .optional()
+      .allow('')
       .trim()
       .pattern(/^[A-Z0-9]+$/)
       .messages({
@@ -116,6 +117,7 @@ const validateDepartmentUpdate = (req, res, next) => {
     headOfDepartment: Joi.string()
       .optional()
       .trim()
+      .allow('')
       .messages({
         'string.empty': 'Head of department cannot be empty'
       }),
