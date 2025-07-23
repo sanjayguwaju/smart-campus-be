@@ -6,7 +6,7 @@ class ProgramApplicationController {
   // Student applies to a program
   async applyToProgram(req, res) {
     try {
-      const { program, studentId } = req.body;
+      const { program, studentId, idCardUrl } = req.body;
       // Prevent duplicate applications by studentId and program
       const existing = await ProgramApplication.findOne({ studentId, program, status: { $in: ['pending', 'approved'] } });
       if (existing) {
@@ -17,6 +17,7 @@ class ProgramApplicationController {
         student,
         program,
         studentId,
+        idCardUrl,
         status: 'pending',
         appliedAt: new Date()
       });
@@ -68,17 +69,20 @@ class ProgramApplicationController {
   async rejectApplication(req, res) {
     try {
       const { id } = req.params;
-      const { reason } = req.body;
+      const { reason, studentId } = req.body;
       const admin = req.user._id;
-      const application = await ProgramApplication.findById(id);
+      const application = await ProgramApplication.findByIdAndUpdate(
+        id,
+        {
+          status: 'rejected',
+          reviewedAt: new Date(),
+          reviewedBy: admin,
+          reason,
+          ...(studentId && { studentId }),
+        },
+        { new: true, runValidators: false }
+      );
       if (!application) return ResponseHandler.notFound(res, 'Application not found');
-      if (application.status !== 'pending') return ResponseHandler.error(res, 400, 'Application already processed');
-      application.status = 'rejected';
-      application.reviewedAt = new Date();
-      application.reviewedBy = admin;
-      application.reason = reason;
-      if (req.body.studentId) application.studentId = req.body.studentId;
-      await application.save();
       return ResponseHandler.success(res, 200, 'Application rejected', application);
     } catch (error) {
       logger.error('Reject application error:', error);
