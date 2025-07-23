@@ -77,6 +77,7 @@ class ProgramApplicationController {
       application.reviewedAt = new Date();
       application.reviewedBy = admin;
       application.reason = reason;
+      if (req.body.studentId) application.studentId = req.body.studentId;
       await application.save();
       return ResponseHandler.success(res, 200, 'Application rejected', application);
     } catch (error) {
