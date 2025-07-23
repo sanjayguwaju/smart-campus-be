@@ -19,7 +19,6 @@ const validateDepartmentCreation = (req, res, next) => {
         'any.required': 'Department name is required'
       }),
     code: Joi.string()
-      .min(2)
       .max(10)
       .optional()
       .trim()
@@ -37,6 +36,7 @@ const validateDepartmentCreation = (req, res, next) => {
         'string.max': 'Description cannot exceed 500 characters'
       }),
     headOfDepartment: Joi.string()
+   
       .optional()
       .trim()
       .messages({

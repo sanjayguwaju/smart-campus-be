@@ -15,7 +15,7 @@ const departmentSchema = new mongoose.Schema({
     sparse: true,
     trim: true,
     uppercase: true,
-    default: '',
+    default: undefined,
     maxlength: 10
   },
   description: {

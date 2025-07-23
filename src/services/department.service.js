@@ -17,9 +17,7 @@ class DepartmentService {
     try {
       const data = {
         name: departmentData.name,
-        code: departmentData.code,
         description: departmentData.description,
-        headOfDepartment: departmentData.headOfDepartment,
         contactEmail: departmentData.contactEmail,
         contactPhone: departmentData.contactPhone,
         location: departmentData.location,
