@@ -12,4 +12,9 @@ const programApplicationSchema = new mongoose.Schema({
   reason: { type: String }
 }, { timestamps: true });
 
+programApplicationSchema.index(
+  { student: 1, program: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: { $in: ['pending', 'approved'] } } }
+);
+
 module.exports = mongoose.model('ProgramApplication', programApplicationSchema); 

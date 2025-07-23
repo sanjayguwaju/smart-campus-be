@@ -7,22 +7,29 @@ class ProgramApplicationController {
   async applyToProgram(req, res) {
     try {
       const { program, studentId, idCardUrl } = req.body;
-      // Prevent duplicate applications by studentId and program
-      const existing = await ProgramApplication.findOne({ studentId, program, status: { $in: ['pending', 'approved'] } });
+      const student = req.user._id;
+      // Debug: log all applications for this user/program
+      const allApps = await ProgramApplication.find({ student, program });
+      logger.info('All applications for this user/program:', allApps.map(a => ({ id: a._id, status: a.status })));
+      // Prevent duplicate applications by student and program
+      const existing = await ProgramApplication.findOne({ student, program, status: { $in: ['pending', 'approved'] } });
       if (existing) {
         return ResponseHandler.error(res, 400, 'You have already applied or been approved for this program.');
       }
-      const student = req.user._id;
       const application = await ProgramApplication.create({
         student,
         program,
-        studentId,
+        studentId, // campusId for admin reference
         idCardUrl,
         status: 'pending',
         appliedAt: new Date()
       });
       return ResponseHandler.success(res, 201, 'Application submitted', application);
     } catch (error) {
+      if (error.code === 11000) {
+        // Duplicate key error (unique index violation)
+        return ResponseHandler.error(res, 400, 'You have already applied or been approved for this program.');
+      }
       logger.error('Apply to program error:', error);
       return ResponseHandler.error(res, 500, 'Failed to submit application');
     }
