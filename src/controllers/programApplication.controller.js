@@ -6,16 +6,16 @@ class ProgramApplicationController {
   // Student applies to a program
   async applyToProgram(req, res) {
     try {
-      const { programId, studentId } = req.body;
-      const student = req.user._id;
-      // Prevent duplicate applications
-      const existing = await ProgramApplication.findOne({ student, program: programId, status: { $in: ['pending', 'approved'] } });
+      const { program, studentId } = req.body;
+      // Prevent duplicate applications by studentId and program
+      const existing = await ProgramApplication.findOne({ studentId, program, status: { $in: ['pending', 'approved'] } });
       if (existing) {
         return ResponseHandler.error(res, 400, 'You have already applied or been approved for this program.');
       }
+      const student = req.user._id;
       const application = await ProgramApplication.create({
         student,
-        program: programId,
+        program,
         studentId,
         status: 'pending',
         appliedAt: new Date()
