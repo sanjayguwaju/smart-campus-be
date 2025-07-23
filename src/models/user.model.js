@@ -46,8 +46,9 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   department: {
-    type: String,
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+    required: true
   },
   phone: {
     type: String,
