@@ -48,7 +48,9 @@ const userSchema = new mongoose.Schema({
   department: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Department',
-    required: true
+    required: function() {
+      return this.role === 'student' || this.role === 'faculty';
+    }
   },
   phone: {
     type: String,
