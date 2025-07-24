@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 // Create a new department
 async function createDepartment(req, res) {
   try {
-    const department = await departmentService.createDepartment(req.body);
+    const department = await departmentService.createDepartment(req.body, req.user._id);
     logger.info(`Department created: ${department.name} by user: ${req.user.email}`);
     
     ResponseHandler.success(res, 201, 'Department created successfully', department);
@@ -25,12 +25,14 @@ async function getDepartments(req, res) {
       page = 1,
       limit = 10,
       search,
+      status,
+      headOfDepartment,
       isActive,
       sortBy = 'name',
       sortOrder = 'asc'
     } = req.query;
 
-    const filters = { search, isActive };
+    const filters = { search, status, headOfDepartment, isActive };
     const pagination = { page, limit, sortBy, sortOrder };
 
     const result = await departmentService.getDepartments(filters, pagination);
@@ -65,7 +67,12 @@ async function getDepartmentById(req, res) {
 // Update a department
 async function updateDepartment(req, res) {
   try {
-    const department = await departmentService.updateDepartment(req.params.id, req.body);
+    const updateData = {
+      ...req.body,
+      lastModifiedBy: req.user._id
+    };
+    
+    const department = await departmentService.updateDepartment(req.params.id, updateData);
     
     logger.info(`Department updated: ${department.name} by user: ${req.user.email}`);
     

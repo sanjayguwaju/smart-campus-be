@@ -11,9 +11,10 @@ class DepartmentService {
   /**
    * Create a new department
    * @param {Object} departmentData - Department data
+   * @param {string} createdBy - User ID who is creating the department
    * @returns {Promise<Object>} Created department
    */
-  async createDepartment(departmentData) {
+  async createDepartment(departmentData, createdBy) {
     try {
       const data = {
         name: departmentData.name,
@@ -23,7 +24,11 @@ class DepartmentService {
         contactEmail: departmentData.contactEmail,
         contactPhone: departmentData.contactPhone,
         location: departmentData.location,
-        isActive: departmentData.isActive !== undefined ? departmentData.isActive : true
+        address: departmentData.address,
+        logo: departmentData.logo,
+        status: departmentData.status || 'active',
+        isActive: departmentData.isActive !== undefined ? departmentData.isActive : false,
+        createdBy: createdBy
       };
 
       // Check if department with same name or code already exists
@@ -56,7 +61,7 @@ class DepartmentService {
   async getDepartments(filters = {}, pagination = {}) {
     try {
       const { page = 1, limit = 10, sortBy = 'name', sortOrder = 'asc' } = pagination;
-      const { search, isActive } = filters;
+      const { search, status, headOfDepartment, isActive } = filters;
 
       // Build query
       const query = {};
@@ -67,6 +72,14 @@ class DepartmentService {
           { code: { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } }
         ];
+      }
+
+      if (status !== undefined) {
+        query.status = status;
+      }
+
+      if (headOfDepartment !== undefined) {
+        query.headOfDepartment = headOfDepartment;
       }
 
       if (isActive !== undefined) {
@@ -148,7 +161,11 @@ class DepartmentService {
       if (updateData.contactEmail !== undefined) data.contactEmail = updateData.contactEmail;
       if (updateData.contactPhone !== undefined) data.contactPhone = updateData.contactPhone;
       if (updateData.location !== undefined) data.location = updateData.location;
+      if (updateData.address !== undefined) data.address = updateData.address;
+      if (updateData.logo !== undefined) data.logo = updateData.logo;
+      if (updateData.status !== undefined) data.status = updateData.status;
       if (updateData.isActive !== undefined) data.isActive = updateData.isActive;
+      if (updateData.lastModifiedBy !== undefined) data.lastModifiedBy = updateData.lastModifiedBy;
 
       // Check if department with same name or code already exists (excluding current department)
       if (updateData.name || updateData.code) {
@@ -288,16 +305,20 @@ class DepartmentService {
    */
   async getDepartmentStats() {
     try {
-      const [totalDepartments, activeDepartments, inactiveDepartments] = await Promise.all([
+      const [totalDepartments, activeDepartments, inactiveDepartments, archivedDepartments, isActiveDepartments] = await Promise.all([
         Department.countDocuments(),
-        Department.countDocuments({ isActive: true }),
-        Department.countDocuments({ isActive: false })
+        Department.countDocuments({ status: 'active' }),
+        Department.countDocuments({ status: 'inactive' }),
+        Department.countDocuments({ status: 'archived' }),
+        Department.countDocuments({ isActive: true })
       ]);
 
       const stats = {
         total: totalDepartments,
         active: activeDepartments,
         inactive: inactiveDepartments,
+        archived: archivedDepartments,
+        isActive: isActiveDepartments,
         activePercentage: totalDepartments > 0 ? Math.round((activeDepartments / totalDepartments) * 100) : 0
       };
 

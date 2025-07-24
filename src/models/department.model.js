@@ -82,6 +82,10 @@ const departmentSchema = new mongoose.Schema({
     enum: ['active', 'inactive', 'archived'],
     default: 'active'
   },
+  isActive: {
+    type: Boolean,
+    default: false
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -97,6 +101,7 @@ const departmentSchema = new mongoose.Schema({
 departmentSchema.index({ name: 'text', code: 'text', description: 'text' });
 departmentSchema.index({ status: 1 });
 departmentSchema.index({ headOfDepartment: 1 });
+departmentSchema.index({ isActive: 1 });
 
 // Pre-save middleware to ensure code is uppercase
 departmentSchema.pre('save', function(next) {
@@ -139,7 +144,7 @@ departmentSchema.virtual('fullAddress').get(function() {
 
 // Static method to find active departments
 departmentSchema.statics.findActive = function() {
-  return this.find({ status: 'active' }).sort({ name: 1 });
+  return this.find({ status: 'active', isActive: true }).sort({ name: 1 });
 };
 
 // Static method to find by status
