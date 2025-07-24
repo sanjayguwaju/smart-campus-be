@@ -21,9 +21,7 @@ async function getBlogs(req, res) {
     const pagination = { page, limit, sortBy, sortOrder };
 
     const result = await blogService.getBlogs(filters, pagination);
-    
-    logger.info(`Blogs retrieved: ${result.data.length} blogs by user: ${req.user.email}`);
-    
+        
     // Return blogs data with pagination at the same level
     ResponseHandler.success(res, 200, 'Blogs retrieved successfully', result.data, result.pagination);
   } catch (error) {
