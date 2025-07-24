@@ -1,696 +1,802 @@
 const Submission = require('../models/submission.model');
 const Assignment = require('../models/assignment.model');
 const User = require('../models/user.model');
-const { createError } = require('../utils/createError');
+const { uploadImage, deleteImage } = require('../config/cloudinary.config');
+const createError = require('../utils/createError');
 const logger = require('../utils/logger');
 
 class SubmissionService {
   /**
-   * Submit assignment
+   * Create a new submission
    */
-  static async submitAssignment(submissionData, studentId) {
+  async createSubmission(submissionData, userId) {
     try {
-      const { assignment: assignmentId, studentComments, files } = submissionData;
-
-      // Validate assignment exists and is published
-      const assignment = await Assignment.findById(assignmentId);
+      // Check if assignment exists and is published
+      const assignment = await Assignment.findById(submissionData.assignment);
       if (!assignment) {
         throw createError(404, 'Assignment not found');
       }
-
+      
       if (assignment.status !== 'published') {
-        throw createError(400, 'Assignment is not open for submissions');
+        throw createError(400, 'Cannot submit to unpublished assignment');
       }
-
-      // Check if student can submit
-      const existingSubmissions = await Submission.find({
-        assignment: assignmentId,
-        student: studentId
+      
+      // Check if student exists
+      const student = await User.findById(submissionData.student);
+      if (!student || student.role !== 'student') {
+        throw createError(404, 'Student not found');
+      }
+      
+      // Check if submission already exists for this student and assignment
+      const existingSubmission = await Submission.findOne({
+        assignment: submissionData.assignment,
+        student: submissionData.student
       });
-
-      if (existingSubmissions.length >= assignment.requirements.maxSubmissions) {
-        throw createError(400, 'Maximum number of submissions reached');
+      
+      if (existingSubmission) {
+        // Create a new submission with incremented submission number
+        submissionData.submissionNumber = existingSubmission.submissionNumber + 1;
       }
-
+      
       // Check if submission is late
       const now = new Date();
-      const effectiveDueDate = assignment.extendedDueDate || assignment.dueDate;
-      const isLate = now > effectiveDueDate;
-
-      if (isLate && !assignment.requirements.allowLateSubmission) {
-        throw createError(400, 'Late submissions are not allowed for this assignment');
+      if (assignment.dueDate && now > assignment.dueDate) {
+        submissionData.isLate = true;
+        submissionData.latePenalty = assignment.requirements?.latePenalty || 0;
+        submissionData.status = 'late';
       }
-
-      // Validate files
-      if (files && files.length > 0) {
-        for (const file of files) {
-          // Validate file size
-          if (file.fileSize > assignment.requirements.maxFileSize * 1024 * 1024) {
-            throw createError(400, `File ${file.fileName} exceeds maximum size limit`);
-          }
-
-          // Validate file type
-          if (assignment.requirements.allowedFileTypes.length > 0) {
-            const fileExtension = file.fileName.split('.').pop().toLowerCase();
-            if (!assignment.requirements.allowedFileTypes.includes(fileExtension)) {
-              throw createError(400, `File type ${fileExtension} is not allowed`);
-            }
-          }
-        }
-      }
-
-      // Calculate submission number
-      const submissionNumber = existingSubmissions.length + 1;
-
-      // Calculate late penalty if applicable
-      let latePenalty = 0;
-      if (isLate && assignment.requirements.latePenalty > 0) {
-        latePenalty = assignment.calculateLatePenalty(now);
-      }
-
-      const submission = new Submission({
-        assignment: assignmentId,
-        student: studentId,
-        files: files || [],
-        submissionNumber,
-        submittedAt: now,
-        isLate,
-        latePenalty,
-        studentComments,
-        status: isLate ? 'late' : 'submitted',
-        createdBy: studentId
-      });
-
+      
+      // Add metadata
+      submissionData.createdBy = userId;
+      submissionData.ipAddress = submissionData.ipAddress || 'unknown';
+      submissionData.userAgent = submissionData.userAgent || 'unknown';
+      
+      const submission = new Submission(submissionData);
       await submission.save();
-
+      
       // Add history entry
-      await submission.addHistoryEntry(
-        'submitted',
-        studentId,
-        `Submission #${submissionNumber}${isLate ? ' (Late)' : ''}`
-      );
-
-      // Update assignment statistics
-      await this.updateAssignmentStatistics(assignmentId);
-
-      logger.info(`Assignment submitted: ${assignmentId} by student: ${studentId}`);
-
+      await submission.addHistoryEntry('submitted', userId, 'Initial submission');
+      
+      logger.info(`Submission created: ${submission._id} for assignment: ${submissionData.assignment}`);
+      
       return submission;
     } catch (error) {
-      logger.error(`Error submitting assignment: ${error.message}`);
+      logger.error('Error creating submission:', error);
       throw error;
     }
   }
-
+  
   /**
    * Get submissions with filtering and pagination
    */
-  static async getSubmissions(filters, options, userRole, userId) {
+  async getSubmissions(query, user) {
     try {
-      const filter = { ...filters };
-
-      // Apply role-based filtering
-      if (userRole === 'student') {
-        // Students can only see their own submissions
-        filter.student = userId;
-      } else if (userRole === 'faculty') {
-        // Faculty can see submissions for their assignments
-        const facultyAssignments = await Assignment.find({ faculty: userId });
-        const assignmentIds = facultyAssignments.map(a => a._id);
-        filter.assignment = { $in: assignmentIds };
+      const {
+        page = 1,
+        limit = 10,
+        assignment,
+        student,
+        status,
+        grade,
+        isLate,
+        plagiarismFlagged,
+        sortBy = 'submittedAt',
+        sortOrder = 'desc',
+        search
+      } = query;
+      
+      // Build filter object
+      const filter = {};
+      
+      if (assignment) filter.assignment = assignment;
+      if (student) filter.student = student;
+      if (status) filter.status = status;
+      if (grade) filter.grade = grade;
+      if (isLate !== undefined) filter.isLate = isLate;
+      if (plagiarismFlagged !== undefined) filter['plagiarismCheck.flagged'] = plagiarismFlagged;
+      
+      // Role-based filtering
+      if (user.role === 'student') {
+        filter.student = user._id;
+      } else if (user.role === 'faculty') {
+        // Faculty can see submissions for assignments they created
+        const facultyAssignments = await Assignment.find({ faculty: user._id }).select('_id');
+        filter.assignment = { $in: facultyAssignments.map(a => a._id) };
       }
-
-      const submissions = await Submission.paginate(filter, {
-        ...options,
-        populate: [
-          { path: 'assignment', select: 'title course faculty' },
-          { path: 'student', select: 'firstName lastName email studentId' },
-          { path: 'reviewedBy', select: 'firstName lastName' },
-          { path: 'createdBy', select: 'firstName lastName' }
-        ],
-        sort: { submittedAt: -1 }
-      });
-
-      return submissions;
+      
+      // Search functionality
+      if (search) {
+        filter.$or = [
+          { 'files.fileName': { $regex: search, $options: 'i' } },
+          { studentComments: { $regex: search, $options: 'i' } },
+          { instructorNotes: { $regex: search, $options: 'i' } }
+        ];
+      }
+      
+      // Build sort object
+      const sort = {};
+      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+      
+      // Execute query with pagination
+      const skip = (page - 1) * limit;
+      const submissions = await Submission.find(filter)
+        .populate('assignment', 'title course')
+        .populate('student', 'firstName lastName email')
+        .populate('reviewedBy', 'firstName lastName')
+        .populate('createdBy', 'firstName lastName')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+      
+      // Get total count
+      const total = await Submission.countDocuments(filter);
+      
+      return {
+        submissions,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      };
     } catch (error) {
-      logger.error(`Error getting submissions: ${error.message}`);
+      logger.error('Error getting submissions:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Get submission by ID with proper permissions
+   * Get submission by ID
    */
-  static async getSubmissionById(submissionId, userRole, userId) {
+  async getSubmissionById(submissionId, user) {
     try {
       const submission = await Submission.findById(submissionId)
-        .populate('assignment', 'title description course faculty requirements gradingCriteria')
-        .populate('student', 'firstName lastName email studentId')
-        .populate('reviewedBy', 'firstName lastName email')
+        .populate('assignment', 'title description course faculty dueDate totalPoints')
+        .populate('student', 'firstName lastName email')
+        .populate('reviewedBy', 'firstName lastName')
         .populate('createdBy', 'firstName lastName')
-        .populate('lastModifiedBy', 'firstName lastName');
-
+        .populate('verification.verifiedBy', 'firstName lastName');
+      
       if (!submission) {
         throw createError(404, 'Submission not found');
       }
-
-      // Check permissions
-      if (userRole === 'student' && submission.student.toString() !== userId) {
+      
+      // Check access permissions
+      if (user.role === 'student' && submission.student.toString() !== user._id.toString()) {
         throw createError(403, 'Access denied');
-      } else if (userRole === 'faculty') {
-        const assignment = await Assignment.findById(submission.assignment);
-        if (assignment.faculty.toString() !== userId) {
+      }
+      
+      if (user.role === 'faculty') {
+        const assignment = await Assignment.findById(submission.assignment._id);
+        if (assignment.faculty.toString() !== user._id.toString()) {
           throw createError(403, 'Access denied');
         }
       }
-
+      
       return submission;
     } catch (error) {
-      logger.error(`Error getting submission: ${error.message}`);
+      logger.error('Error getting submission by ID:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Grade submission
+   * Update submission
    */
-  static async gradeSubmission(submissionId, gradingData, reviewerId, userRole) {
+  async updateSubmission(submissionId, updateData, userId) {
     try {
       const submission = await Submission.findById(submissionId);
       if (!submission) {
         throw createError(404, 'Submission not found');
       }
-
-      // Check permissions - only faculty who created the assignment can grade
-      const assignment = await Assignment.findById(submission.assignment);
-      if (assignment.faculty.toString() !== reviewerId && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can grade this submission');
+      
+      // Check permissions
+      if (user.role === 'student' && submission.student.toString() !== user._id.toString()) {
+        throw createError(403, 'Access denied');
       }
-
-      // Validate grading data
-      if (gradingData.numericalScore < 0 || gradingData.numericalScore > 100) {
-        throw createError(400, 'Numerical score must be between 0 and 100');
-      }
-
-      if (gradingData.criteriaScores && gradingData.criteriaScores.length > 0) {
-        for (const criteria of gradingData.criteriaScores) {
-          if (criteria.earnedPoints > criteria.maxPoints) {
-            throw createError(400, `Earned points cannot exceed max points for criterion: ${criteria.criterion}`);
-          }
+      
+      if (user.role === 'faculty') {
+        const assignment = await Assignment.findById(submission.assignment);
+        if (assignment.faculty.toString() !== user._id.toString()) {
+          throw createError(403, 'Access denied');
         }
       }
-
-      await submission.gradeSubmission(gradingData, reviewerId);
-
-      // Update assignment statistics
-      await this.updateAssignmentStatistics(submission.assignment);
-
-      logger.info(`Submission graded: ${submissionId} by user: ${reviewerId}`);
-
-      return submission;
-    } catch (error) {
-      logger.error(`Error grading submission: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Return submission for revision
-   */
-  static async returnSubmission(submissionId, feedbackData, returnedBy, userRole) {
-    try {
-      const submission = await Submission.findById(submissionId);
-      if (!submission) {
-        throw createError(404, 'Submission not found');
-      }
-
-      // Check permissions
-      const assignment = await Assignment.findById(submission.assignment);
-      if (assignment.faculty.toString() !== returnedBy && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can return this submission');
-      }
-
-      await submission.returnForRevision(feedbackData, returnedBy);
-
-      logger.info(`Submission returned: ${submissionId} by user: ${returnedBy}`);
-
-      return submission;
-    } catch (error) {
-      logger.error(`Error returning submission: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Check submission for plagiarism
-   */
-  static async checkPlagiarism(submissionId, plagiarismData, checkedBy, userRole) {
-    try {
-      const submission = await Submission.findById(submissionId);
-      if (!submission) {
-        throw createError(404, 'Submission not found');
-      }
-
-      // Check permissions
-      const assignment = await Assignment.findById(submission.assignment);
-      if (assignment.faculty.toString() !== checkedBy && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can check plagiarism');
-      }
-
-      await submission.checkPlagiarism(
-        plagiarismData.similarityScore,
-        plagiarismData.reportUrl,
-        checkedBy
-      );
-
-      logger.info(`Plagiarism check completed: ${submissionId} by user: ${checkedBy}`);
-
-      return submission;
-    } catch (error) {
-      logger.error(`Error checking plagiarism: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Verify submission
-   */
-  static async verifySubmission(submissionId, notes, verifiedBy, userRole) {
-    try {
-      const submission = await Submission.findById(submissionId);
-      if (!submission) {
-        throw createError(404, 'Submission not found');
-      }
-
-      // Check permissions
-      const assignment = await Assignment.findById(submission.assignment);
-      if (assignment.faculty.toString() !== verifiedBy && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can verify this submission');
-      }
-
-      await submission.verifySubmission(verifiedBy, notes);
-
-      logger.info(`Submission verified: ${submissionId} by user: ${verifiedBy}`);
-
-      return submission;
-    } catch (error) {
-      logger.error(`Error verifying submission: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Add files to submission
-   */
-  static async addSubmissionFiles(submissionId, files, userId, userRole) {
-    try {
-      const submission = await Submission.findById(submissionId);
-      if (!submission) {
-        throw createError(404, 'Submission not found');
-      }
-
-      // Check permissions
-      if (submission.student.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the student or admin can add files to this submission');
-      }
-
-      // Get assignment for validation
-      const assignment = await Assignment.findById(submission.assignment);
-
-      for (const file of files) {
-        // Validate file size
-        if (file.fileSize > assignment.requirements.maxFileSize * 1024 * 1024) {
-          throw createError(400, `File ${file.fileName} exceeds maximum size limit`);
+      
+      // Update fields
+      Object.keys(updateData).forEach(key => {
+        if (key !== '_id' && key !== 'createdBy') {
+          submission[key] = updateData[key];
         }
-
-        // Validate file type
-        if (assignment.requirements.allowedFileTypes.length > 0) {
-          const fileExtension = file.fileName.split('.').pop().toLowerCase();
-          if (!assignment.requirements.allowedFileTypes.includes(fileExtension)) {
-            throw createError(400, `File type ${fileExtension} is not allowed`);
-          }
-        }
-
-        await submission.addFile(
-          file.fileName,
-          file.fileUrl,
-          file.fileSize,
-          file.fileType
-        );
-      }
-
-      logger.info(`Files added to submission: ${submissionId} by user: ${userId}`);
-
+      });
+      
+      submission.lastModifiedBy = userId;
+      await submission.save();
+      
+      logger.info(`Submission updated: ${submissionId} by user: ${userId}`);
+      
       return submission;
     } catch (error) {
-      logger.error(`Error adding files to submission: ${error.message}`);
+      logger.error('Error updating submission:', error);
       throw error;
     }
   }
-
-  /**
-   * Remove file from submission
-   */
-  static async removeSubmissionFile(submissionId, fileUrl, userId, userRole) {
-    try {
-      const submission = await Submission.findById(submissionId);
-      if (!submission) {
-        throw createError(404, 'Submission not found');
-      }
-
-      // Check permissions
-      if (submission.student.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the student or admin can remove files from this submission');
-      }
-
-      await submission.removeFile(fileUrl);
-
-      logger.info(`File removed from submission: ${submissionId} by user: ${userId}`);
-
-      return submission;
-    } catch (error) {
-      logger.error(`Error removing file from submission: ${error.message}`);
-      throw error;
-    }
-  }
-
+  
   /**
    * Delete submission
    */
-  static async deleteSubmission(submissionId, userId, userRole) {
+  async deleteSubmission(submissionId, userId) {
     try {
       const submission = await Submission.findById(submissionId);
       if (!submission) {
         throw createError(404, 'Submission not found');
       }
-
-      // Check permissions
-      if (submission.student.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the student or admin can delete this submission');
+      
+      // Check permissions (only admin or faculty who created the assignment)
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot delete submissions');
       }
-
-      await Submission.findByIdAndDelete(submissionId);
-
-      // Update assignment statistics
-      await this.updateAssignmentStatistics(submission.assignment);
-
-      logger.info(`Submission deleted: ${submissionId} by user: ${userId}`);
-
-      return { message: 'Submission deleted successfully' };
-    } catch (error) {
-      logger.error(`Error deleting submission: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Get submissions by assignment
-   */
-  static async getSubmissionsByAssignment(assignmentId, userRole, userId) {
-    try {
-      // Check permissions
-      if (userRole === 'faculty') {
-        const assignment = await Assignment.findById(assignmentId);
-        if (assignment.faculty.toString() !== userId) {
+      
+      if (user.role === 'faculty') {
+        const assignment = await Assignment.findById(submission.assignment);
+        if (assignment.faculty.toString() !== user._id.toString()) {
           throw createError(403, 'Access denied');
         }
       }
-
-      const submissions = await Submission.findByAssignment(assignmentId)
-        .populate('student', 'firstName lastName email studentId')
-        .populate('reviewedBy', 'firstName lastName');
-
-      return submissions;
+      
+      // Delete files from Cloudinary
+      for (const file of submission.files) {
+        try {
+          await deleteImage(file.fileUrl);
+        } catch (fileError) {
+          logger.warn(`Failed to delete file from Cloudinary: ${file.fileUrl}`, fileError);
+        }
+      }
+      
+      await Submission.findByIdAndDelete(submissionId);
+      
+      logger.info(`Submission deleted: ${submissionId} by user: ${userId}`);
+      
+      return { message: 'Submission deleted successfully' };
     } catch (error) {
-      logger.error(`Error getting submissions by assignment: ${error.message}`);
+      logger.error('Error deleting submission:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Get submissions by student
+   * Add file to submission
    */
-  static async getSubmissionsByStudent(studentId, userRole, userId) {
+  async addFileToSubmission(submissionId, fileData, userId) {
     try {
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        throw createError(404, 'Submission not found');
+      }
+      
       // Check permissions
-      if (userRole === 'student' && studentId !== userId) {
+      if (user.role === 'student' && submission.student.toString() !== user._id.toString()) {
         throw createError(403, 'Access denied');
       }
-
-      const submissions = await Submission.findByStudent(studentId)
-        .populate('assignment', 'title course faculty')
-        .populate('reviewedBy', 'firstName lastName');
-
-      return submissions;
-    } catch (error) {
-      logger.error(`Error getting submissions by student: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Get late submissions
-   */
-  static async getLateSubmissions(userRole, userId) {
-    try {
-      let submissions;
-
-      if (userRole === 'student') {
-        submissions = await Submission.find({ student: userId, isLate: true })
-          .populate('assignment', 'title course faculty')
-          .sort({ submittedAt: -1 });
-      } else if (userRole === 'faculty') {
-        const facultyAssignments = await Assignment.find({ faculty: userId });
-        const assignmentIds = facultyAssignments.map(a => a._id);
-        submissions = await Submission.find({
-          assignment: { $in: assignmentIds },
-          isLate: true
-        })
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email')
-          .sort({ submittedAt: -1 });
+      
+      // Upload file to Cloudinary
+      let fileUrl;
+      if (fileData.fileBuffer) {
+        const uploadResult = await uploadImage(fileData.fileBuffer, { folder: 'smart-campus/submissions' });
+        fileUrl = uploadResult.url;
       } else {
-        submissions = await Submission.findLate()
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email');
+        fileUrl = fileData.fileUrl;
       }
-
-      return submissions;
+      
+      // Add file to submission
+      await submission.addFile(
+        fileData.fileName,
+        fileUrl,
+        fileData.fileSize,
+        fileData.fileType
+      );
+      
+      logger.info(`File added to submission: ${submissionId} by user: ${userId}`);
+      
+      return submission;
     } catch (error) {
-      logger.error(`Error getting late submissions: ${error.message}`);
+      logger.error('Error adding file to submission:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Get ungraded submissions
+   * Remove file from submission
    */
-  static async getUngradedSubmissions(userRole, userId) {
+  async removeFileFromSubmission(submissionId, fileUrl, userId) {
     try {
-      let submissions;
-
-      if (userRole === 'faculty') {
-        const facultyAssignments = await Assignment.find({ faculty: userId });
-        const assignmentIds = facultyAssignments.map(a => a._id);
-        submissions = await Submission.find({
-          assignment: { $in: assignmentIds },
-          status: { $in: ['submitted', 'under_review'] },
-          grade: { $exists: false }
-        })
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email')
-          .sort({ submittedAt: 1 });
-      } else {
-        submissions = await Submission.findUngraded()
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email');
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        throw createError(404, 'Submission not found');
       }
-
-      return submissions;
+      
+      // Check permissions
+      if (user.role === 'student' && submission.student.toString() !== user._id.toString()) {
+        throw createError(403, 'Access denied');
+      }
+      
+      // Remove file from Cloudinary
+      try {
+        await deleteImage(fileUrl);
+      } catch (fileError) {
+        logger.warn(`Failed to delete file from Cloudinary: ${fileUrl}`, fileError);
+      }
+      
+      // Remove file from submission
+      await submission.removeFile(fileUrl);
+      
+      logger.info(`File removed from submission: ${submissionId} by user: ${userId}`);
+      
+      return submission;
     } catch (error) {
-      logger.error(`Error getting ungraded submissions: ${error.message}`);
+      logger.error('Error removing file from submission:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Get graded submissions
+   * Grade submission
    */
-  static async getGradedSubmissions(userRole, userId) {
+  async gradeSubmission(submissionId, gradingData, userId) {
     try {
-      let submissions;
-
-      if (userRole === 'student') {
-        submissions = await Submission.find({
-          student: userId,
-          status: 'graded',
-          grade: { $exists: true, $ne: null }
-        })
-          .populate('assignment', 'title course faculty')
-          .populate('reviewedBy', 'firstName lastName')
-          .sort({ reviewedAt: -1 });
-      } else if (userRole === 'faculty') {
-        const facultyAssignments = await Assignment.find({ faculty: userId });
-        const assignmentIds = facultyAssignments.map(a => a._id);
-        submissions = await Submission.find({
-          assignment: { $in: assignmentIds },
-          status: 'graded',
-          grade: { $exists: true, $ne: null }
-        })
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email')
-          .populate('reviewedBy', 'firstName lastName')
-          .sort({ reviewedAt: -1 });
-      } else {
-        submissions = await Submission.findGraded()
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email')
-          .populate('reviewedBy', 'firstName lastName');
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        throw createError(404, 'Submission not found');
       }
-
-      return submissions;
+      
+      // Check permissions (only faculty who created the assignment)
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot grade submissions');
+      }
+      
+      const assignment = await Assignment.findById(submission.assignment);
+      if (assignment.faculty.toString() !== user._id.toString()) {
+        throw createError(403, 'Access denied');
+      }
+      
+      // Grade the submission
+      await submission.gradeSubmission(gradingData, userId);
+      
+      logger.info(`Submission graded: ${submissionId} by user: ${userId}`);
+      
+      return submission;
     } catch (error) {
-      logger.error(`Error getting graded submissions: ${error.message}`);
+      logger.error('Error grading submission:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Get plagiarism flagged submissions
+   * Return submission for revision
    */
-  static async getPlagiarismFlaggedSubmissions(userRole, userId) {
+  async returnSubmissionForRevision(submissionId, feedback, userId) {
     try {
-      let submissions;
-
-      if (userRole === 'faculty') {
-        const facultyAssignments = await Assignment.find({ faculty: userId });
-        const assignmentIds = facultyAssignments.map(a => a._id);
-        submissions = await Submission.find({
-          assignment: { $in: assignmentIds },
-          'plagiarismCheck.flagged': true
-        })
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email')
-          .sort({ submittedAt: -1 });
-      } else {
-        submissions = await Submission.findPlagiarismFlagged()
-          .populate('assignment', 'title course faculty')
-          .populate('student', 'firstName lastName email');
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        throw createError(404, 'Submission not found');
       }
-
-      return submissions;
+      
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot return submissions');
+      }
+      
+      const assignment = await Assignment.findById(submission.assignment);
+      if (assignment.faculty.toString() !== user._id.toString()) {
+        throw createError(403, 'Access denied');
+      }
+      
+      // Return submission for revision
+      await submission.returnForRevision(feedback, userId);
+      
+      logger.info(`Submission returned for revision: ${submissionId} by user: ${userId}`);
+      
+      return submission;
     } catch (error) {
-      logger.error(`Error getting plagiarism flagged submissions: ${error.message}`);
+      logger.error('Error returning submission for revision:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Search submissions
+   * Mark submission as late
    */
-  static async searchSubmissions(searchTerm, userRole, userId) {
+  async markSubmissionAsLate(submissionId, penalty, userId) {
     try {
-      const filter = {
-        $or: [
-          { studentComments: { $regex: searchTerm, $options: 'i' } },
-          { 'feedback.general': { $regex: searchTerm, $options: 'i' } }
-        ]
-      };
-
-      // Apply role-based filtering
-      if (userRole === 'student') {
-        filter.student = userId;
-      } else if (userRole === 'faculty') {
-        const facultyAssignments = await Assignment.find({ faculty: userId });
-        const assignmentIds = facultyAssignments.map(a => a._id);
-        filter.assignment = { $in: assignmentIds };
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        throw createError(404, 'Submission not found');
       }
-
-      const submissions = await Submission.find(filter)
-        .populate('assignment', 'title course faculty')
-        .populate('student', 'firstName lastName email')
-        .sort({ submittedAt: -1 });
-
-      return submissions;
+      
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot mark submissions as late');
+      }
+      
+      const assignment = await Assignment.findById(submission.assignment);
+      if (assignment.faculty.toString() !== user._id.toString()) {
+        throw createError(403, 'Access denied');
+      }
+      
+      // Mark as late
+      await submission.markAsLate(penalty, userId);
+      
+      logger.info(`Submission marked as late: ${submissionId} by user: ${userId}`);
+      
+      return submission;
     } catch (error) {
-      logger.error(`Error searching submissions: ${error.message}`);
+      logger.error('Error marking submission as late:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Update assignment statistics
+   * Check plagiarism
    */
-  static async updateAssignmentStatistics(assignmentId) {
+  async checkPlagiarism(submissionId, plagiarismData, userId) {
     try {
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        throw createError(404, 'Submission not found');
+      }
+      
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot check plagiarism');
+      }
+      
+      const assignment = await Assignment.findById(submission.assignment);
+      if (assignment.faculty.toString() !== user._id.toString()) {
+        throw createError(403, 'Access denied');
+      }
+      
+      // Check plagiarism
+      await submission.checkPlagiarism(
+        plagiarismData.similarityScore,
+        plagiarismData.reportUrl,
+        userId
+      );
+      
+      logger.info(`Plagiarism check completed: ${submissionId} by user: ${userId}`);
+      
+      return submission;
+    } catch (error) {
+      logger.error('Error checking plagiarism:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Verify submission
+   */
+  async verifySubmission(submissionId, notes, userId) {
+    try {
+      const submission = await Submission.findById(submissionId);
+      if (!submission) {
+        throw createError(404, 'Submission not found');
+      }
+      
+      // Check permissions (only admin or faculty)
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot verify submissions');
+      }
+      
+      if (user.role === 'faculty') {
+        const assignment = await Assignment.findById(submission.assignment);
+        if (assignment.faculty.toString() !== user._id.toString()) {
+          throw createError(403, 'Access denied');
+        }
+      }
+      
+      // Verify submission
+      await submission.verifySubmission(userId, notes);
+      
+      logger.info(`Submission verified: ${submissionId} by user: ${userId}`);
+      
+      return submission;
+    } catch (error) {
+      logger.error('Error verifying submission:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get submissions by assignment
+   */
+  async getSubmissionsByAssignment(assignmentId, user) {
+    try {
+      // Check if assignment exists
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
         throw createError(404, 'Assignment not found');
       }
-
-      const submissions = await Submission.find({ assignment: assignmentId });
       
-      const statistics = {
-        totalSubmissions: submissions.length,
-        onTimeSubmissions: submissions.filter(s => !s.isLate).length,
-        lateSubmissions: submissions.filter(s => s.isLate).length,
-        averageScore: submissions.length > 0 
-          ? submissions.reduce((sum, s) => sum + (s.numericalScore || 0), 0) / submissions.length 
-          : 0
-      };
-
-      await assignment.updateStatistics(statistics);
-
-      return statistics;
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot view all submissions for an assignment');
+      }
+      
+      if (user.role === 'faculty' && assignment.faculty.toString() !== user._id.toString()) {
+        throw createError(403, 'Access denied');
+      }
+      
+      const submissions = await Submission.findByAssignment(assignmentId)
+        .populate('student', 'firstName lastName email')
+        .populate('reviewedBy', 'firstName lastName')
+        .lean();
+      
+      return submissions;
     } catch (error) {
-      logger.error(`Error updating assignment statistics: ${error.message}`);
+      logger.error('Error getting submissions by assignment:', error);
       throw error;
     }
   }
-
+  
+  /**
+   * Get submissions by student
+   */
+  async getSubmissionsByStudent(studentId, user) {
+    try {
+      // Check permissions
+      if (user.role === 'student' && studentId !== user._id.toString()) {
+        throw createError(403, 'Students can only view their own submissions');
+      }
+      
+      if (user.role === 'faculty') {
+        // Faculty can only see submissions for assignments they created
+        const facultyAssignments = await Assignment.find({ faculty: user._id }).select('_id');
+        const submissions = await Submission.find({
+          student: studentId,
+          assignment: { $in: facultyAssignments.map(a => a._id) }
+        }).populate('assignment', 'title course').populate('reviewedBy', 'firstName lastName').lean();
+        
+        return submissions;
+      }
+      
+      // Admin can see all submissions
+      const submissions = await Submission.findByStudent(studentId)
+        .populate('assignment', 'title course')
+        .populate('reviewedBy', 'firstName lastName')
+        .lean();
+      
+      return submissions;
+    } catch (error) {
+      logger.error('Error getting submissions by student:', error);
+      throw error;
+    }
+  }
+  
   /**
    * Get submission statistics
    */
-  static async getSubmissionStatistics(userRole, userId) {
+  async getSubmissionStats(user) {
     try {
-      let filter = {};
-
-      if (userRole === 'student') {
-        filter.student = userId;
-      } else if (userRole === 'faculty') {
-        const facultyAssignments = await Assignment.find({ faculty: userId });
-        const assignmentIds = facultyAssignments.map(a => a._id);
-        filter.assignment = { $in: assignmentIds };
+      let matchStage = {};
+      
+      // Role-based filtering
+      if (user.role === 'student') {
+        matchStage.student = user._id;
+      } else if (user.role === 'faculty') {
+        const facultyAssignments = await Assignment.find({ faculty: user._id }).select('_id');
+        matchStage.assignment = { $in: facultyAssignments.map(a => a._id) };
       }
-
-      const submissions = await Submission.find(filter);
-
-      const statistics = {
-        totalSubmissions: submissions.length,
-        onTimeSubmissions: submissions.filter(s => !s.isLate).length,
-        lateSubmissions: submissions.filter(s => s.isLate).length,
-        gradedSubmissions: submissions.filter(s => s.status === 'graded').length,
-        averageScore: submissions.length > 0 
-          ? submissions.reduce((sum, s) => sum + (s.numericalScore || 0), 0) / submissions.length 
-          : 0,
-        plagiarismFlagged: submissions.filter(s => s.plagiarismCheck.flagged).length,
-        gradeDistribution: {}
-      };
-
-      // Calculate grade distribution
-      submissions.forEach(submission => {
-        if (submission.grade) {
-          statistics.gradeDistribution[submission.grade] = 
-            (statistics.gradeDistribution[submission.grade] || 0) + 1;
+      
+      const stats = await Submission.aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: null,
+            totalSubmissions: { $sum: 1 },
+            gradedSubmissions: {
+              $sum: { $cond: [{ $eq: ['$status', 'graded'] }, 1, 0] }
+            },
+            lateSubmissions: {
+              $sum: { $cond: [{ $eq: ['$isLate', true] }, 1, 0] }
+            },
+            plagiarismFlagged: {
+              $sum: { $cond: [{ $eq: ['$plagiarismCheck.flagged', true] }, 1, 0] }
+            },
+            averageScore: { $avg: '$numericalScore' },
+            verifiedSubmissions: {
+              $sum: { $cond: [{ $eq: ['$verification.isVerified', true] }, 1, 0] }
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            totalSubmissions: 1,
+            gradedSubmissions: 1,
+            lateSubmissions: 1,
+            plagiarismFlagged: 1,
+            averageScore: { $round: ['$averageScore', 2] },
+            verifiedSubmissions: 1,
+            pendingSubmissions: { $subtract: ['$totalSubmissions', '$gradedSubmissions'] }
+          }
         }
-      });
-
-      return statistics;
+      ]);
+      
+      return stats[0] || {
+        totalSubmissions: 0,
+        gradedSubmissions: 0,
+        lateSubmissions: 0,
+        plagiarismFlagged: 0,
+        averageScore: 0,
+        verifiedSubmissions: 0,
+        pendingSubmissions: 0
+      };
     } catch (error) {
-      logger.error(`Error getting submission statistics: ${error.message}`);
+      logger.error('Error getting submission stats:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Bulk operations on submissions
+   */
+  async bulkOperation(operationData, userId) {
+    try {
+      const { operation, submissionIds, data } = operationData;
+      
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot perform bulk operations');
+      }
+      
+      const results = {
+        success: [],
+        failed: [],
+        total: submissionIds.length
+      };
+      
+      for (const submissionId of submissionIds) {
+        try {
+          const submission = await Submission.findById(submissionId);
+          if (!submission) {
+            results.failed.push({ id: submissionId, error: 'Submission not found' });
+            continue;
+          }
+          
+          // Check faculty permissions
+          if (user.role === 'faculty') {
+            const assignment = await Assignment.findById(submission.assignment);
+            if (assignment.faculty.toString() !== user._id.toString()) {
+              results.failed.push({ id: submissionId, error: 'Access denied' });
+              continue;
+            }
+          }
+          
+          // Perform operation
+          switch (operation) {
+            case 'grade':
+              await submission.gradeSubmission(data, userId);
+              break;
+            case 'return':
+              await submission.returnForRevision(data.feedback, userId);
+              break;
+            case 'markLate':
+              await submission.markAsLate(data.penalty, userId);
+              break;
+            case 'checkPlagiarism':
+              await submission.checkPlagiarism(data.similarityScore, data.reportUrl, userId);
+              break;
+            case 'verify':
+              await submission.verifySubmission(userId, data.notes);
+              break;
+            case 'delete':
+              await this.deleteSubmission(submissionId, userId);
+              break;
+            default:
+              throw new Error(`Unknown operation: ${operation}`);
+          }
+          
+          results.success.push(submissionId);
+        } catch (error) {
+          results.failed.push({ id: submissionId, error: error.message });
+        }
+      }
+      
+      logger.info(`Bulk operation completed: ${operation} on ${results.success.length} submissions by user: ${userId}`);
+      
+      return results;
+    } catch (error) {
+      logger.error('Error performing bulk operation:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get late submissions
+   */
+  async getLateSubmissions(user) {
+    try {
+      let filter = { isLate: true };
+      
+      // Role-based filtering
+      if (user.role === 'student') {
+        filter.student = user._id;
+      } else if (user.role === 'faculty') {
+        const facultyAssignments = await Assignment.find({ faculty: user._id }).select('_id');
+        filter.assignment = { $in: facultyAssignments.map(a => a._id) };
+      }
+      
+      const submissions = await Submission.find(filter)
+        .populate('assignment', 'title course')
+        .populate('student', 'firstName lastName email')
+        .sort({ submittedAt: -1 })
+        .lean();
+      
+      return submissions;
+    } catch (error) {
+      logger.error('Error getting late submissions:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get ungraded submissions
+   */
+  async getUngradedSubmissions(user) {
+    try {
+      let filter = { 
+        status: { $in: ['submitted', 'under_review'] },
+        grade: { $exists: false }
+      };
+      
+      // Role-based filtering
+      if (user.role === 'student') {
+        filter.student = user._id;
+      } else if (user.role === 'faculty') {
+        const facultyAssignments = await Assignment.find({ faculty: user._id }).select('_id');
+        filter.assignment = { $in: facultyAssignments.map(a => a._id) };
+      }
+      
+      const submissions = await Submission.find(filter)
+        .populate('assignment', 'title course')
+        .populate('student', 'firstName lastName email')
+        .sort({ submittedAt: 1 })
+        .lean();
+      
+      return submissions;
+    } catch (error) {
+      logger.error('Error getting ungraded submissions:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get plagiarism flagged submissions
+   */
+  async getPlagiarismFlaggedSubmissions(user) {
+    try {
+      let filter = { 'plagiarismCheck.flagged': true };
+      
+      // Role-based filtering
+      if (user.role === 'student') {
+        filter.student = user._id;
+      } else if (user.role === 'faculty') {
+        const facultyAssignments = await Assignment.find({ faculty: user._id }).select('_id');
+        filter.assignment = { $in: facultyAssignments.map(a => a._id) };
+      }
+      
+      const submissions = await Submission.find(filter)
+        .populate('assignment', 'title course')
+        .populate('student', 'firstName lastName email')
+        .sort({ submittedAt: -1 })
+        .lean();
+      
+      return submissions;
+    } catch (error) {
+      logger.error('Error getting plagiarism flagged submissions:', error);
       throw error;
     }
   }
 }
 
-module.exports = SubmissionService; 
+module.exports = new SubmissionService(); 
