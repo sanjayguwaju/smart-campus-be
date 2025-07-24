@@ -1,46 +1,37 @@
 const Assignment = require('../models/assignment.model');
-const Submission = require('../models/submission.model');
 const Course = require('../models/course.model');
 const User = require('../models/user.model');
-const { createError } = require('../utils/createError');
+const ResponseHandler = require('../utils/responseHandler');
 const logger = require('../utils/logger');
+const createError = require('../utils/createError');
+const { uploadImage, deleteImage } = require('../config/cloudinary.config');
 
 class AssignmentService {
   /**
    * Create a new assignment
    */
-  static async createAssignment(assignmentData, facultyId) {
+  async createAssignment(assignmentData, userId) {
     try {
-      // Validate course exists
+      // Validate that course exists and user is the instructor or admin
       const course = await Course.findById(assignmentData.course);
       if (!course) {
         throw createError(404, 'Course not found');
       }
 
-      // Validate faculty exists and is faculty
-      const faculty = await User.findById(facultyId);
+      // Check if user is the course instructor or admin
+      if (course.instructor.toString() !== userId && assignmentData.faculty !== userId) {
+        throw createError(403, 'Only course instructor can create assignments for this course');
+      }
+
+      // Validate that faculty exists and is actually a faculty member
+      const faculty = await User.findById(assignmentData.faculty);
       if (!faculty || faculty.role !== 'faculty') {
-        throw createError(403, 'Only faculty can create assignments');
-      }
-
-      // Validate due date is in the future
-      if (new Date(assignmentData.dueDate) <= new Date()) {
-        throw createError(400, 'Due date must be in the future');
-      }
-
-      // Validate extended due date if provided
-      if (assignmentData.extendedDueDate) {
-        if (new Date(assignmentData.extendedDueDate) <= new Date(assignmentData.dueDate)) {
-          throw createError(400, 'Extended due date must be after the original due date');
-        }
+        throw createError(400, 'Invalid faculty member');
       }
 
       // Validate grading criteria points match total points
       if (assignmentData.gradingCriteria && assignmentData.gradingCriteria.length > 0) {
-        const criteriaPoints = assignmentData.gradingCriteria.reduce(
-          (sum, criteria) => sum + criteria.maxPoints, 
-          0
-        );
+        const criteriaPoints = assignmentData.gradingCriteria.reduce((sum, criteria) => sum + criteria.maxPoints, 0);
         if (criteriaPoints !== assignmentData.totalPoints) {
           throw createError(400, 'Total points must match the sum of grading criteria points');
         }
@@ -48,60 +39,129 @@ class AssignmentService {
 
       const assignment = new Assignment({
         ...assignmentData,
-        faculty: facultyId,
-        createdBy: facultyId
+        createdBy: userId,
+        lastModifiedBy: userId
       });
 
       await assignment.save();
-
-      logger.info(`Assignment created: ${assignment._id} by faculty: ${facultyId}`);
-
+      
+      logger.info(`Assignment created: ${assignment._id} by user: ${userId}`);
       return assignment;
     } catch (error) {
-      logger.error(`Error creating assignment: ${error.message}`);
+      logger.error('Error creating assignment:', error);
       throw error;
     }
   }
 
   /**
-   * Get assignments with filtering and pagination
+   * Get assignments with filtering, pagination, and search
    */
-  static async getAssignments(filters, options, userRole, userId) {
+  async getAssignments(query, user) {
     try {
-      const filter = { ...filters };
+      const {
+        page = 1,
+        limit = 10,
+        course,
+        faculty,
+        assignmentType,
+        status,
+        difficulty,
+        isVisible,
+        dueDateFrom,
+        dueDateTo,
+        sortBy = 'dueDate',
+        sortOrder = 'asc',
+        search,
+        tags
+      } = query;
 
-      // Apply role-based filtering
-      if (userRole === 'student') {
+      // Build filter object
+      const filter = {};
+
+      // Role-based filtering
+      if (user.role === 'student') {
+        // Students can only see published assignments for courses they're enrolled in
         filter.status = 'published';
         filter.isVisible = true;
-      } else if (userRole === 'faculty') {
+        
+        // Get enrolled courses for the student
+        const enrolledCourses = await Course.find({ students: user._id }).select('_id');
+        filter.course = { $in: enrolledCourses.map(c => c._id) };
+      } else if (user.role === 'faculty') {
+        // Faculty can see their own assignments and published assignments
         filter.$or = [
-          { faculty: userId },
+          { faculty: user._id },
           { status: 'published', isVisible: true }
         ];
       }
+      // Admins can see all assignments
 
-      const assignments = await Assignment.paginate(filter, {
-        ...options,
-        populate: [
-          { path: 'course', select: 'name code' },
-          { path: 'faculty', select: 'firstName lastName email' },
-          { path: 'createdBy', select: 'firstName lastName' }
-        ],
-        sort: { createdAt: -1 }
-      });
+      // Apply additional filters
+      if (course) filter.course = course;
+      if (faculty) filter.faculty = faculty;
+      if (assignmentType) filter.assignmentType = assignmentType;
+      if (status) filter.status = status;
+      if (difficulty) filter.difficulty = difficulty;
+      if (isVisible !== undefined) filter.isVisible = isVisible;
 
-      return assignments;
+      // Date range filtering
+      if (dueDateFrom || dueDateTo) {
+        filter.dueDate = {};
+        if (dueDateFrom) filter.dueDate.$gte = new Date(dueDateFrom);
+        if (dueDateTo) filter.dueDate.$lte = new Date(dueDateTo);
+      }
+
+      // Search functionality
+      if (search) {
+        filter.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      // Tags filtering
+      if (tags) {
+        const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+        filter.tags = { $in: tagArray };
+      }
+
+      // Build sort object
+      const sort = {};
+      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+      // Execute query with pagination
+      const skip = (page - 1) * limit;
+      const assignments = await Assignment.find(filter)
+        .populate('course', 'name code')
+        .populate('faculty', 'firstName lastName email')
+        .populate('createdBy', 'firstName lastName')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      // Get total count for pagination
+      const total = await Assignment.countDocuments(filter);
+
+      return {
+        assignments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      };
     } catch (error) {
-      logger.error(`Error getting assignments: ${error.message}`);
+      logger.error('Error getting assignments:', error);
       throw error;
     }
   }
 
   /**
-   * Get assignment by ID with proper permissions
+   * Get assignment by ID
    */
-  static async getAssignmentById(assignmentId, userRole, userId) {
+  async getAssignmentById(assignmentId, user) {
     try {
       const assignment = await Assignment.findById(assignmentId)
         .populate('course', 'name code description')
@@ -113,20 +173,26 @@ class AssignmentService {
         throw createError(404, 'Assignment not found');
       }
 
-      // Check permissions
-      if (userRole === 'student') {
+      // Check access permissions
+      if (user.role === 'student') {
         if (assignment.status !== 'published' || !assignment.isVisible) {
           throw createError(403, 'Access denied');
         }
-      } else if (userRole === 'faculty' && assignment.faculty.toString() !== userId) {
-        if (assignment.status !== 'published' || !assignment.isVisible) {
+        
+        // Check if student is enrolled in the course
+        const course = await Course.findById(assignment.course);
+        if (!course || !course.students.includes(user._id)) {
+          throw createError(403, 'Access denied - not enrolled in course');
+        }
+      } else if (user.role === 'faculty') {
+        if (assignment.faculty.toString() !== user._id.toString() && assignment.status !== 'published') {
           throw createError(403, 'Access denied');
         }
       }
 
       return assignment;
     } catch (error) {
-      logger.error(`Error getting assignment: ${error.message}`);
+      logger.error('Error getting assignment by ID:', error);
       throw error;
     }
   }
@@ -134,7 +200,7 @@ class AssignmentService {
   /**
    * Update assignment
    */
-  static async updateAssignment(assignmentId, updateData, userId, userRole) {
+  async updateAssignment(assignmentId, updateData, userId) {
     try {
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
@@ -142,43 +208,26 @@ class AssignmentService {
       }
 
       // Check permissions
-      if (assignment.faculty.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can update this assignment');
+      if (assignment.faculty.toString() !== userId && assignment.createdBy.toString() !== userId) {
+        throw createError(403, 'Only assignment creator or faculty can update this assignment');
       }
 
-      // Validate due date changes
-      if (updateData.dueDate) {
-        const newDueDate = new Date(updateData.dueDate);
-        if (newDueDate <= new Date()) {
-          throw createError(400, 'Due date must be in the future');
-        }
-
-        // Check if there are existing submissions
-        const submissionCount = await Submission.countDocuments({ assignment: assignmentId });
-        if (submissionCount > 0) {
-          throw createError(400, 'Cannot change due date after submissions have been made');
-        }
-      }
-
-      // Validate extended due date
-      if (updateData.extendedDueDate) {
-        const effectiveDueDate = updateData.dueDate || assignment.dueDate;
-        if (new Date(updateData.extendedDueDate) <= new Date(effectiveDueDate)) {
-          throw createError(400, 'Extended due date must be after the original due date');
+      // Validate grading criteria points match total points if both are provided
+      if (updateData.gradingCriteria && updateData.totalPoints) {
+        const criteriaPoints = updateData.gradingCriteria.reduce((sum, criteria) => sum + criteria.maxPoints, 0);
+        if (criteriaPoints !== updateData.totalPoints) {
+          throw createError(400, 'Total points must match the sum of grading criteria points');
         }
       }
 
       // Update assignment
-      Object.assign(assignment, updateData);
-      assignment.lastModifiedBy = userId;
-
+      Object.assign(assignment, updateData, { lastModifiedBy: userId });
       await assignment.save();
 
       logger.info(`Assignment updated: ${assignmentId} by user: ${userId}`);
-
       return assignment;
     } catch (error) {
-      logger.error(`Error updating assignment: ${error.message}`);
+      logger.error('Error updating assignment:', error);
       throw error;
     }
   }
@@ -186,7 +235,7 @@ class AssignmentService {
   /**
    * Delete assignment
    */
-  static async deleteAssignment(assignmentId, userId, userRole) {
+  async deleteAssignment(assignmentId, userId) {
     try {
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
@@ -194,81 +243,35 @@ class AssignmentService {
       }
 
       // Check permissions
-      if (assignment.faculty.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can delete this assignment');
+      if (assignment.faculty.toString() !== userId && assignment.createdBy.toString() !== userId) {
+        throw createError(403, 'Only assignment creator or faculty can delete this assignment');
       }
 
-      // Check if there are submissions
-      const submissionCount = await Submission.countDocuments({ assignment: assignmentId });
-      if (submissionCount > 0) {
-        throw createError(400, 'Cannot delete assignment with existing submissions');
+      // Delete associated files from Cloudinary
+      if (assignment.files && assignment.files.length > 0) {
+        for (const file of assignment.files) {
+          try {
+            await deleteFromCloudinary(file.fileUrl);
+          } catch (fileError) {
+            logger.warn(`Failed to delete file from Cloudinary: ${file.fileUrl}`, fileError);
+          }
+        }
       }
 
       await Assignment.findByIdAndDelete(assignmentId);
 
       logger.info(`Assignment deleted: ${assignmentId} by user: ${userId}`);
-
       return { message: 'Assignment deleted successfully' };
     } catch (error) {
-      logger.error(`Error deleting assignment: ${error.message}`);
+      logger.error('Error deleting assignment:', error);
       throw error;
     }
   }
 
   /**
-   * Publish assignment
+   * Add file to assignment
    */
-  static async publishAssignment(assignmentId, userId, userRole) {
-    try {
-      const assignment = await Assignment.findById(assignmentId);
-      if (!assignment) {
-        throw createError(404, 'Assignment not found');
-      }
-
-      if (assignment.faculty.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can publish this assignment');
-      }
-
-      await assignment.publish();
-
-      logger.info(`Assignment published: ${assignmentId} by user: ${userId}`);
-
-      return assignment;
-    } catch (error) {
-      logger.error(`Error publishing assignment: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Close assignment submissions
-   */
-  static async closeAssignment(assignmentId, userId, userRole) {
-    try {
-      const assignment = await Assignment.findById(assignmentId);
-      if (!assignment) {
-        throw createError(404, 'Assignment not found');
-      }
-
-      if (assignment.faculty.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can close this assignment');
-      }
-
-      await assignment.closeSubmissions();
-
-      logger.info(`Assignment closed: ${assignmentId} by user: ${userId}`);
-
-      return assignment;
-    } catch (error) {
-      logger.error(`Error closing assignment: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Get assignment statistics
-   */
-  static async getAssignmentStatistics(assignmentId, userId, userRole) {
+  async addFileToAssignment(assignmentId, fileData, userId) {
     try {
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
@@ -276,87 +279,29 @@ class AssignmentService {
       }
 
       // Check permissions
-      if (userRole === 'faculty' && assignment.faculty.toString() !== userId) {
-        throw createError(403, 'Access denied');
+      if (assignment.faculty.toString() !== userId && assignment.createdBy.toString() !== userId) {
+        throw createError(403, 'Only assignment creator or faculty can add files');
       }
 
-      // Get submission statistics
-      const submissions = await Submission.find({ assignment: assignmentId });
-      
-      const statistics = {
-        totalSubmissions: submissions.length,
-        onTimeSubmissions: submissions.filter(s => !s.isLate).length,
-        lateSubmissions: submissions.filter(s => s.isLate).length,
-        gradedSubmissions: submissions.filter(s => s.status === 'graded').length,
-        averageScore: submissions.length > 0 
-          ? submissions.reduce((sum, s) => sum + (s.numericalScore || 0), 0) / submissions.length 
-          : 0,
-        gradeDistribution: {},
-        submissionTimeline: [],
-        plagiarismFlagged: submissions.filter(s => s.plagiarismCheck.flagged).length,
-        verificationStatus: {
-          verified: submissions.filter(s => s.verification.isVerified).length,
-          unverified: submissions.filter(s => !s.verification.isVerified).length
-        }
-      };
-
-      // Calculate grade distribution
-      submissions.forEach(submission => {
-        if (submission.grade) {
-          statistics.gradeDistribution[submission.grade] = 
-            (statistics.gradeDistribution[submission.grade] || 0) + 1;
-        }
-      });
-
-      // Calculate submission timeline (last 7 days)
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        return date.toISOString().split('T')[0];
-      }).reverse();
-
-      last7Days.forEach(date => {
-        const count = submissions.filter(s => 
-          s.submittedAt.toISOString().split('T')[0] === date
-        ).length;
-        statistics.submissionTimeline.push({ date, count });
-      });
-
-      return statistics;
-    } catch (error) {
-      logger.error(`Error getting assignment statistics: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Add files to assignment
-   */
-  static async addAssignmentFiles(assignmentId, files, userId, userRole) {
-    try {
-      const assignment = await Assignment.findById(assignmentId);
-      if (!assignment) {
-        throw createError(404, 'Assignment not found');
+      // Upload file to Cloudinary if file buffer is provided
+      let fileUrl = fileData.fileUrl;
+      if (fileData.fileBuffer) {
+        const uploadResult = await uploadImage(fileData.fileBuffer, { folder: 'smart-campus/assignments' });
+        fileUrl = uploadResult.url;
       }
 
-      if (assignment.faculty.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can add files');
-      }
+      // Add file to assignment
+      await assignment.addFile(
+        fileData.fileName,
+        fileUrl,
+        fileData.fileSize,
+        fileData.fileType
+      );
 
-      for (const file of files) {
-        await assignment.addFile(
-          file.fileName,
-          file.fileUrl,
-          file.fileSize,
-          file.fileType
-        );
-      }
-
-      logger.info(`Files added to assignment: ${assignmentId} by user: ${userId}`);
-
+      logger.info(`File added to assignment: ${assignmentId} by user: ${userId}`);
       return assignment;
     } catch (error) {
-      logger.error(`Error adding files to assignment: ${error.message}`);
+      logger.error('Error adding file to assignment:', error);
       throw error;
     }
   }
@@ -364,24 +309,83 @@ class AssignmentService {
   /**
    * Remove file from assignment
    */
-  static async removeAssignmentFile(assignmentId, fileUrl, userId, userRole) {
+  async removeFileFromAssignment(assignmentId, fileUrl, userId) {
     try {
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
         throw createError(404, 'Assignment not found');
       }
 
-      if (assignment.faculty.toString() !== userId && userRole !== 'admin') {
-        throw createError(403, 'Only the assignment creator or admin can remove files');
+      // Check permissions
+      if (assignment.faculty.toString() !== userId && assignment.createdBy.toString() !== userId) {
+        throw createError(403, 'Only assignment creator or faculty can remove files');
       }
 
+      // Find the file
+      const file = assignment.files.find(f => f.fileUrl === fileUrl);
+      if (!file) {
+        throw createError(404, 'File not found in assignment');
+      }
+
+      // Delete from Cloudinary
+      try {
+        await deleteImage(fileUrl);
+      } catch (fileError) {
+        logger.warn(`Failed to delete file from Cloudinary: ${fileUrl}`, fileError);
+      }
+
+      // Remove file from assignment
       await assignment.removeFile(fileUrl);
 
       logger.info(`File removed from assignment: ${assignmentId} by user: ${userId}`);
-
       return assignment;
     } catch (error) {
-      logger.error(`Error removing file from assignment: ${error.message}`);
+      logger.error('Error removing file from assignment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update assignment status
+   */
+  async updateAssignmentStatus(assignmentId, status, userId) {
+    try {
+      const assignment = await Assignment.findById(assignmentId);
+      if (!assignment) {
+        throw createError(404, 'Assignment not found');
+      }
+
+      // Check permissions
+      if (assignment.faculty.toString() !== userId && assignment.createdBy.toString() !== userId) {
+        throw createError(403, 'Only assignment creator or faculty can update status');
+      }
+
+      // Update status based on the new status
+      switch (status) {
+        case 'published':
+          await assignment.publish();
+          break;
+        case 'submission_closed':
+          await assignment.closeSubmissions();
+          break;
+        case 'grading':
+          await assignment.startGrading();
+          break;
+        case 'completed':
+          await assignment.complete();
+          break;
+        case 'archived':
+          await assignment.archive();
+          break;
+        default:
+          assignment.status = status;
+          await assignment.save();
+      }
+
+      logger.info(`Assignment status updated: ${assignmentId} to ${status} by user: ${userId}`);
+      return assignment;
+    } catch (error) {
+      logger.error('Error updating assignment status:', error);
       throw error;
     }
   }
@@ -389,28 +393,40 @@ class AssignmentService {
   /**
    * Get assignments by course
    */
-  static async getAssignmentsByCourse(courseId, userRole, userId) {
+  async getAssignmentsByCourse(courseId, user) {
     try {
-      const filter = { course: courseId };
+      // Check if user has access to the course
+      const course = await Course.findById(courseId);
+      if (!course) {
+        throw createError(404, 'Course not found');
+      }
 
-      // Apply role-based filtering
-      if (userRole === 'student') {
+      if (user.role === 'student') {
+        if (!course.students.includes(user._id)) {
+          throw createError(403, 'Access denied - not enrolled in course');
+        }
+      } else if (user.role === 'faculty') {
+        if (course.instructor.toString() !== user._id.toString()) {
+          throw createError(403, 'Access denied - not course instructor');
+        }
+      }
+
+      const filter = { course: courseId };
+      
+      // Students can only see published assignments
+      if (user.role === 'student') {
         filter.status = 'published';
         filter.isVisible = true;
-      } else if (userRole === 'faculty') {
-        filter.$or = [
-          { faculty: userId },
-          { status: 'published', isVisible: true }
-        ];
       }
 
       const assignments = await Assignment.find(filter)
         .populate('faculty', 'firstName lastName')
-        .sort({ dueDate: 1 });
+        .sort({ dueDate: 1 })
+        .lean();
 
       return assignments;
     } catch (error) {
-      logger.error(`Error getting assignments by course: ${error.message}`);
+      logger.error('Error getting assignments by course:', error);
       throw error;
     }
   }
@@ -418,20 +434,206 @@ class AssignmentService {
   /**
    * Get assignments by faculty
    */
-  static async getAssignmentsByFaculty(facultyId, userRole, userId) {
+  async getAssignmentsByFaculty(facultyId, user) {
     try {
       // Check permissions
-      if (userRole === 'faculty' && facultyId !== userId) {
-        throw createError(403, 'Access denied');
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot access faculty assignments');
+      }
+
+      if (user.role === 'faculty' && user._id.toString() !== facultyId) {
+        throw createError(403, 'Faculty can only access their own assignments');
       }
 
       const assignments = await Assignment.find({ faculty: facultyId })
         .populate('course', 'name code')
-        .sort({ createdAt: -1 });
+        .sort({ dueDate: 1 })
+        .lean();
 
       return assignments;
     } catch (error) {
-      logger.error(`Error getting assignments by faculty: ${error.message}`);
+      logger.error('Error getting assignments by faculty:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get assignment statistics
+   */
+  async getAssignmentStats(user) {
+    try {
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot access assignment statistics');
+      }
+
+      const filter = {};
+      
+      // Faculty can only see their own statistics
+      if (user.role === 'faculty') {
+        filter.faculty = user._id;
+      }
+
+      const stats = await Assignment.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            totalAssignments: { $sum: 1 },
+            publishedAssignments: {
+              $sum: { $cond: [{ $eq: ['$status', 'published'] }, 1, 0] }
+            },
+            draftAssignments: {
+              $sum: { $cond: [{ $eq: ['$status', 'draft'] }, 1, 0] }
+            },
+            completedAssignments: {
+              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+            },
+            overdueAssignments: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $in: ['$status', ['published', 'submission_closed']] },
+                      { $lt: ['$dueDate', new Date()] }
+                    ]
+                  }, 1, 0]
+              }
+            }
+          }
+        }
+      ]);
+
+      // Get assignments by type
+      const typeStats = await Assignment.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: '$assignmentType',
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } }
+      ]);
+
+      // Get assignments by difficulty
+      const difficultyStats = await Assignment.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: '$difficulty',
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } }
+      ]);
+
+      return {
+        overview: stats[0] || {
+          totalAssignments: 0,
+          publishedAssignments: 0,
+          draftAssignments: 0,
+          completedAssignments: 0,
+          overdueAssignments: 0
+        },
+        byType: typeStats,
+        byDifficulty: difficultyStats
+      };
+    } catch (error) {
+      logger.error('Error getting assignment statistics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk operations on assignments
+   */
+  async bulkOperation(operationData, userId) {
+    try {
+      const { operation, assignmentIds, status } = operationData;
+
+      // Check if all assignments exist and user has permission
+      const assignments = await Assignment.find({
+        _id: { $in: assignmentIds }
+      });
+
+      if (assignments.length !== assignmentIds.length) {
+        throw createError(400, 'Some assignments not found');
+      }
+
+      // Check permissions for all assignments
+      for (const assignment of assignments) {
+        if (assignment.faculty.toString() !== userId && assignment.createdBy.toString() !== userId) {
+          throw createError(403, `No permission to modify assignment: ${assignment._id}`);
+        }
+      }
+
+      let result;
+      switch (operation) {
+        case 'publish':
+          result = await Assignment.updateMany(
+            { _id: { $in: assignmentIds } },
+            { 
+              status: 'published',
+              isVisible: true,
+              lastModifiedBy: userId
+            }
+          );
+          break;
+
+        case 'archive':
+          result = await Assignment.updateMany(
+            { _id: { $in: assignmentIds } },
+            { 
+              status: 'archived',
+              isVisible: false,
+              lastModifiedBy: userId
+            }
+          );
+          break;
+
+        case 'delete':
+          // Delete files from Cloudinary first
+          for (const assignment of assignments) {
+            if (assignment.files && assignment.files.length > 0) {
+              for (const file of assignment.files) {
+                try {
+                  await deleteImage(file.fileUrl);
+                } catch (fileError) {
+                  logger.warn(`Failed to delete file from Cloudinary: ${file.fileUrl}`, fileError);
+                }
+              }
+            }
+          }
+          
+          result = await Assignment.deleteMany({ _id: { $in: assignmentIds } });
+          break;
+
+        case 'updateStatus':
+          if (!status) {
+            throw createError(400, 'Status is required for updateStatus operation');
+          }
+          result = await Assignment.updateMany(
+            { _id: { $in: assignmentIds } },
+            { 
+              status,
+              lastModifiedBy: userId
+            }
+          );
+          break;
+
+        default:
+          throw createError(400, 'Invalid operation');
+      }
+
+      logger.info(`Bulk operation ${operation} completed on ${assignmentIds.length} assignments by user: ${userId}`);
+      return {
+        operation,
+        processedCount: result.modifiedCount || result.deletedCount,
+        totalCount: assignmentIds.length
+      };
+    } catch (error) {
+      logger.error('Error performing bulk operation:', error);
       throw error;
     }
   }
@@ -439,67 +641,29 @@ class AssignmentService {
   /**
    * Get overdue assignments
    */
-  static async getOverdueAssignments(userRole, userId) {
+  async getOverdueAssignments(user) {
     try {
       const filter = {};
-
-      // Apply role-based filtering
-      if (userRole === 'faculty') {
-        filter.faculty = userId;
-      }
-
-      const assignments = await Assignment.findOverdue()
-        .populate('course', 'name code')
-        .populate('faculty', 'firstName lastName');
-
-      // Filter by role if needed
-      if (userRole === 'faculty') {
-        return assignments.filter(a => a.faculty.toString() === userId);
-      }
-
-      return assignments;
-    } catch (error) {
-      logger.error(`Error getting overdue assignments: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Search assignments
-   */
-  static async searchAssignments(searchTerm, userRole, userId) {
-    try {
-      const filter = {
-        $or: [
-          { title: { $regex: searchTerm, $options: 'i' } },
-          { description: { $regex: searchTerm, $options: 'i' } },
-          { tags: { $in: [new RegExp(searchTerm, 'i')] } }
-        ]
-      };
-
-      // Apply role-based filtering
-      if (userRole === 'student') {
+      
+      // Role-based filtering
+      if (user.role === 'student') {
+        // Get enrolled courses for the student
+        const enrolledCourses = await Course.find({ students: user._id }).select('_id');
+        filter.course = { $in: enrolledCourses.map(c => c._id) };
         filter.status = 'published';
         filter.isVisible = true;
-      } else if (userRole === 'faculty') {
-        filter.$and = [
-          {
-            $or: [
-              { faculty: userId },
-              { status: 'published', isVisible: true }
-            ]
-          }
-        ];
+      } else if (user.role === 'faculty') {
+        filter.faculty = user._id;
       }
 
-      const assignments = await Assignment.find(filter)
+      const overdueAssignments = await Assignment.findOverdue()
         .populate('course', 'name code')
         .populate('faculty', 'firstName lastName')
-        .sort({ createdAt: -1 });
+        .lean();
 
-      return assignments;
+      return overdueAssignments;
     } catch (error) {
-      logger.error(`Error searching assignments: ${error.message}`);
+      logger.error('Error getting overdue assignments:', error);
       throw error;
     }
   }
@@ -507,32 +671,20 @@ class AssignmentService {
   /**
    * Update assignment statistics
    */
-  static async updateAssignmentStatistics(assignmentId) {
+  async updateAssignmentStatistics(assignmentId, statisticsData) {
     try {
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
         throw createError(404, 'Assignment not found');
       }
 
-      const submissions = await Submission.find({ assignment: assignmentId });
-      
-      const statistics = {
-        totalSubmissions: submissions.length,
-        onTimeSubmissions: submissions.filter(s => !s.isLate).length,
-        lateSubmissions: submissions.filter(s => s.isLate).length,
-        averageScore: submissions.length > 0 
-          ? submissions.reduce((sum, s) => sum + (s.numericalScore || 0), 0) / submissions.length 
-          : 0
-      };
-
-      await assignment.updateStatistics(statistics);
-
-      return statistics;
+      await assignment.updateStatistics(statisticsData);
+      return assignment;
     } catch (error) {
-      logger.error(`Error updating assignment statistics: ${error.message}`);
+      logger.error('Error updating assignment statistics:', error);
       throw error;
     }
   }
 }
 
-module.exports = AssignmentService; 
+module.exports = new AssignmentService(); 
