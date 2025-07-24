@@ -1,11 +1,28 @@
 const mongoose = require('mongoose');
 
 const programSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  department: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', required: true },
-  level: { type: String, enum: ['Undergraduate', 'Postgraduate'], required: true },
-  duration: { type: String, required: true },
-  semesters: { type: Number, required: true },
+  name: { 
+    type: String, 
+    required: true 
+  },
+  department: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Department', 
+    required: true 
+  },
+  level: { 
+    type: String, 
+    enum: ['Undergraduate', 'Postgraduate'], 
+    required: true 
+  },
+  duration: { 
+    type: String, 
+    required: true 
+  },
+  semesters: { 
+    type: Number, 
+    required: true 
+  },
   description: {
     type: String,
     required: true,
