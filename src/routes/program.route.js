@@ -145,7 +145,7 @@ const {
  *       401:
  *         description: Unauthorized - Authentication required
  */
-router.get('/', authenticate, validateProgramQuery, programController.getPrograms);
+router.get('/', validateProgramQuery, programController.getPrograms);
 
 /**
  * @swagger

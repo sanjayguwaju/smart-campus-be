@@ -295,7 +295,7 @@ const {
  *       500:
  *         description: Internal server error
  */
-router.get('/', authenticate, validateBlogQuery, getBlogs);
+router.get('/', validateBlogQuery, getBlogs);
 
 /**
  * @swagger
