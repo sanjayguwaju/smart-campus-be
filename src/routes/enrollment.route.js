@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const enrollmentController = require('../controllers/enrollment.controller');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth.middleware');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 const {
   validateEnrollmentCreation,
   validateEnrollmentUpdate,
@@ -165,8 +165,8 @@ const {
  */
 router.post(
   '/',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   validateEnrollmentCreation,
   enrollmentController.createEnrollment
 );
@@ -276,8 +276,8 @@ router.post(
  */
 router.get(
   '/',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty', 'student']),
+  authenticate,
+  authorize(['admin', 'faculty', 'student']),
   validateEnrollmentQuery,
   enrollmentController.getEnrollments
 );
@@ -318,8 +318,8 @@ router.get(
  */
 router.get(
   '/:id',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty', 'student']),
+  authenticate,
+  authorize(['admin', 'faculty', 'student']),
   validateEnrollmentId,
   enrollmentController.getEnrollmentById
 );
@@ -368,8 +368,8 @@ router.get(
  */
 router.put(
   '/:id',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   validateEnrollmentId,
   validateEnrollmentUpdate,
   enrollmentController.updateEnrollment
@@ -409,8 +409,8 @@ router.put(
  */
 router.delete(
   '/:id',
-  authenticateToken,
-  authorizeRoles(['admin']),
+  authenticate,
+  authorize(['admin']),
   validateEnrollmentId,
   enrollmentController.deleteEnrollment
 );
@@ -454,8 +454,8 @@ router.delete(
  */
 router.post(
   '/:id/courses',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   validateEnrollmentId,
   validateCourseEnrollment,
   enrollmentController.addCourseToEnrollment
@@ -492,8 +492,8 @@ router.post(
  */
 router.delete(
   '/:id/courses/:courseId',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   validateEnrollmentId,
   enrollmentController.removeCourseFromEnrollment
 );
@@ -540,8 +540,8 @@ router.delete(
  */
 router.patch(
   '/:id/status',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   validateEnrollmentId,
   validateEnrollmentStatusUpdate,
   enrollmentController.updateEnrollmentStatus
@@ -591,8 +591,8 @@ router.patch(
  */
 router.patch(
   '/:id/gpa',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   validateEnrollmentId,
   validateGPAUpdate,
   enrollmentController.updateGPA
@@ -648,8 +648,8 @@ router.patch(
  */
 router.post(
   '/:id/documents',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty', 'student']),
+  authenticate,
+  authorize(['admin', 'faculty', 'student']),
   validateEnrollmentId,
   validateDocumentUpload,
   enrollmentController.addDocumentToEnrollment
@@ -686,8 +686,8 @@ router.post(
  */
 router.delete(
   '/:id/documents/:documentId',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   validateEnrollmentId,
   enrollmentController.removeDocumentFromEnrollment
 );
@@ -728,8 +728,8 @@ router.delete(
  */
 router.get(
   '/student/:studentId',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty', 'student']),
+  authenticate,
+  authorize(['admin', 'faculty', 'student']),
   enrollmentController.getEnrollmentsByStudent
 );
 
@@ -769,8 +769,8 @@ router.get(
  */
 router.get(
   '/program/:programId',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   enrollmentController.getEnrollmentsByProgram
 );
 
@@ -837,8 +837,8 @@ router.get(
  */
 router.get(
   '/stats',
-  authenticateToken,
-  authorizeRoles(['admin', 'faculty']),
+  authenticate,
+  authorize(['admin', 'faculty']),
   enrollmentController.getEnrollmentStats
 );
 
@@ -885,8 +885,8 @@ router.get(
  */
 router.post(
   '/bulk',
-  authenticateToken,
-  authorizeRoles(['admin']),
+  authenticate,
+  authorize(['admin']),
   validateBulkEnrollmentOperation,
   enrollmentController.bulkEnrollmentOperation
 );
@@ -920,8 +920,8 @@ router.post(
  */
 router.get(
   '/my-enrollments',
-  authenticateToken,
-  authorizeRoles(['student']),
+  authenticate,
+  authorize(['student']),
   enrollmentController.getMyEnrollments
 );
 
@@ -959,8 +959,8 @@ router.get(
  */
 router.get(
   '/my-advisees',
-  authenticateToken,
-  authorizeRoles(['faculty']),
+  authenticate,
+  authorize(['faculty']),
   enrollmentController.getMyAdvisees
 );
 
