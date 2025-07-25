@@ -12,7 +12,7 @@ const programSchema = new mongoose.Schema({
   },
   level: { 
     type: String, 
-    enum: ['Undergraduate', 'Postgraduate'], 
+    enum: ['Certificate', 'Diploma', 'Undergraduate', 'Postgraduate', 'Doctorate'],
     required: true 
   },
   duration: { 
