@@ -1,6 +1,6 @@
 const { verifyToken, getTokenFromHeader } = require('../utils/jwt');
 const User = require('../models/user.model');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 /**

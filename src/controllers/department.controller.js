@@ -1,5 +1,5 @@
 const departmentService = require('../services/department.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 // Create a new department

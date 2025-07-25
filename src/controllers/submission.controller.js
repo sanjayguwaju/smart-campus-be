@@ -1,5 +1,5 @@
 const submissionService = require('../services/submission.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 class SubmissionController {

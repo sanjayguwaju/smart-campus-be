@@ -927,6 +927,91 @@ router.get(
 
 /**
  * @swagger
+ * /api/enrollments/available-courses:
+ *   get:
+ *     summary: Get available courses for enrollment
+ *     tags: [Enrollments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: programId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Program ID
+ *       - in: query
+ *         name: semester
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 12
+ *         description: Filter by semester
+ *       - in: query
+ *         name: semesterTerm
+ *         schema:
+ *           type: string
+ *           enum: [Fall, Spring, Summer, Winter]
+ *         description: Filter by semester term
+ *       - in: query
+ *         name: academicYear
+ *         schema:
+ *           type: string
+ *           pattern: '^\\d{4}-\\d{4}$'
+ *         description: Filter by academic year
+ *     responses:
+ *       200:
+ *         description: Available courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       creditHours:
+ *                         type: number
+ *                       description:
+ *                         type: string
+ *                       semester:
+ *                         type: number
+ *                       semesterTerm:
+ *                         type: string
+ *                       maxStudents:
+ *                         type: number
+ *                       currentEnrollment:
+ *                         type: number
+ *                       faculty:
+ *                         type: object
+ *                       department:
+ *                         type: object
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Program ID is required
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  '/available-courses',
+  authenticate,
+  authorize(['admin', 'faculty', 'student']),
+  enrollmentController.getAvailableCourses
+);
+
+/**
+ * @swagger
  * /api/enrollments/my-advisees:
  *   get:
  *     summary: Get enrollments by advisor (for faculty)

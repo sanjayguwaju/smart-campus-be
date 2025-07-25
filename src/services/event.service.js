@@ -17,7 +17,7 @@ class EventService {
       // Validate organizer exists
       const organizer = await User.findById(eventData.organizer);
       if (!organizer) {
-        throw createError('Organizer not found', 404);
+        throw createError(404, 'Organizer not found');
       }
 
       // Validate co-organizers exist
@@ -26,7 +26,7 @@ class EventService {
           _id: { $in: eventData.coOrganizers }
         });
         if (coOrganizers.length !== eventData.coOrganizers.length) {
-          throw createError('One or more co-organizers not found', 404);
+          throw createError(404, 'One or more co-organizers not found');
         }
       }
 
@@ -233,7 +233,7 @@ class EventService {
         .populate('updatedBy', 'firstName lastName email');
 
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Increment view count if user is authenticated
@@ -265,18 +265,18 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Fetch the user to check role
       const user = await User.findById(userId);
       if (!user) {
-        throw createError('User not found', 404);
+        throw createError(404, 'User not found');
       }
 
       // Only allow the organizer or an admin to update
       if (event.organizer.toString() !== userId && user.role !== 'admin') {
-        throw createError('Unauthorized to update this event', 403);
+        throw createError(403, 'Unauthorized to update this event');
       }
 
       // Set updatedBy
@@ -286,7 +286,7 @@ class EventService {
       if (updateData.organizer) {
         const organizer = await User.findById(updateData.organizer);
         if (!organizer) {
-          throw createError('Organizer not found', 404);
+          throw createError(404, 'Organizer not found');
         }
       }
 
@@ -296,7 +296,7 @@ class EventService {
           _id: { $in: updateData.coOrganizers }
         });
         if (coOrganizers.length !== updateData.coOrganizers.length) {
-          throw createError('One or more co-organizers not found', 404);
+          throw createError(404, 'One or more co-organizers not found');
         }
       }
 
@@ -323,18 +323,18 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Fetch the user to check role
       const user = await User.findById(userId);
       if (!user) {
-        throw createError('User not found', 404);
+        throw createError(404, 'User not found');
       }
 
       // Only allow the organizer or an admin to delete
       if (event.organizer.toString() !== userId && user.role !== 'admin') {
-        throw createError('Unauthorized to delete this event', 403);
+        throw createError(403, 'Unauthorized to delete this event');
       }
 
       await Event.findByIdAndDelete(eventId);
@@ -354,21 +354,21 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if registration is required and open
       if (!event.isRegistrationRequired) {
-        throw createError('Registration is not required for this event', 400);
+        throw createError(400, 'Registration is not required for this event');
       }
 
       if (!event.isRegistrationOpen) {
-        throw createError('Registration is closed for this event', 400);
+        throw createError(400, 'Registration is closed for this event');
       }
 
       // Check registration deadline
       if (event.registrationDeadline && new Date() > event.registrationDeadline) {
-        throw createError('Registration deadline has passed', 400);
+        throw createError(400, 'Registration deadline has passed');
       }
 
       // Check if user is already registered
@@ -378,7 +378,7 @@ class EventService {
 
       if (existingRegistration) {
         if (existingRegistration.status === 'registered' || existingRegistration.status === 'attended') {
-          throw createError('User is already registered for this event', 400);
+          throw createError(400, 'User is already registered for this event');
         } else if (existingRegistration.status === 'cancelled') {
           // Re-register cancelled user
           existingRegistration.status = 'registered';
@@ -418,7 +418,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       await event.cancelRegistration(userId);
@@ -438,12 +438,12 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if admin has permission
       if (event.organizer.toString() !== adminUserId && event.createdBy.toString() !== adminUserId) {
-        throw createError('Unauthorized to mark attendance', 403);
+        throw createError(403, 'Unauthorized to mark attendance');
       }
 
       await event.markAttended(userId);
@@ -463,7 +463,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user attended the event
@@ -472,7 +472,7 @@ class EventService {
       );
 
       if (!attendance) {
-        throw createError('You must attend the event to review it', 400);
+        throw createError(400, 'You must attend the event to review it');
       }
 
       await event.addReview(userId, reviewData.rating, reviewData.comment);
@@ -613,7 +613,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       const statistics = {
@@ -695,7 +695,7 @@ class EventService {
         .lean();
 
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       let attendees = event.attendees;
@@ -728,7 +728,7 @@ class EventService {
         .lean();
 
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       let reviews = event.reviews || [];
@@ -766,7 +766,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user is registered
@@ -775,7 +775,7 @@ class EventService {
       );
 
       if (attendeeIndex === -1) {
-        throw createError('You are not registered for this event', 400);
+        throw createError(400, 'You are not registered for this event');
       }
 
       // Remove from attendees
@@ -804,7 +804,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user has permission (admin, faculty, or organizer)
@@ -812,7 +812,7 @@ class EventService {
       if (!user || !['admin', 'faculty'].includes(user.role)) {
         // Check if user is the organizer
         if (event.organizer.toString() !== userId) {
-          throw createError('You do not have permission to mark attendance', 403);
+          throw createError(403, 'You do not have permission to mark attendance');
         }
       }
 
@@ -822,7 +822,7 @@ class EventService {
       );
 
       if (!attendee) {
-        throw createError('Attendee not found', 404);
+        throw createError(404, 'Attendee not found');
       }
 
       // Update attendance status
@@ -851,7 +851,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user attended the event
@@ -860,7 +860,7 @@ class EventService {
       );
 
       if (!attendee) {
-        throw createError('You must attend the event to leave a review', 400);
+        throw createError(400, 'You must attend the event to leave a review');
       }
 
       // Check if user already reviewed
@@ -869,7 +869,7 @@ class EventService {
       );
 
       if (existingReview) {
-        throw createError('You have already reviewed this event', 400);
+        throw createError(400, 'You have already reviewed this event');
       }
 
       // Add review
@@ -972,7 +972,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user has permission (admin, faculty, or organizer)
@@ -980,7 +980,7 @@ class EventService {
       if (!user || !['admin', 'faculty'].includes(user.role)) {
         // Check if user is the organizer or creator
         if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
-          throw createError('You do not have permission to upload images for this event', 403);
+          throw createError(403, 'You do not have permission to upload images for this event');
         }
       }
 
@@ -1034,7 +1034,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user has permission (admin, faculty, or organizer)
@@ -1042,14 +1042,14 @@ class EventService {
       if (!user || !['admin', 'faculty'].includes(user.role)) {
         // Check if user is the organizer or creator
         if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
-          throw createError('You do not have permission to delete images from this event', 403);
+          throw createError(403, 'You do not have permission to delete images from this event');
         }
       }
 
       // Find the image
       const imageIndex = event.images.findIndex(img => img._id.toString() === imageId);
       if (imageIndex === -1) {
-        throw createError('Image not found', 404);
+        throw createError(404, 'Image not found');
       }
 
       const image = event.images[imageIndex];
@@ -1083,7 +1083,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user has permission (admin, faculty, or organizer)
@@ -1091,14 +1091,14 @@ class EventService {
       if (!user || !['admin', 'faculty'].includes(user.role)) {
         // Check if user is the organizer or creator
         if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
-          throw createError('You do not have permission to update images for this event', 403);
+          throw createError(403, 'You do not have permission to update images for this event');
         }
       }
 
       // Find the image
       const image = event.images.find(img => img._id.toString() === imageId);
       if (!image) {
-        throw createError('Image not found', 404);
+        throw createError(404, 'Image not found');
       }
 
       // Update image data
@@ -1137,7 +1137,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId).select('images');
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       return {
@@ -1157,7 +1157,7 @@ class EventService {
     try {
       const event = await Event.findById(eventId);
       if (!event) {
-        throw createError('Event not found', 404);
+        throw createError(404, 'Event not found');
       }
 
       // Check if user has permission (admin, faculty, or organizer)
@@ -1165,7 +1165,7 @@ class EventService {
       if (!user || !['admin', 'faculty'].includes(user.role)) {
         // Check if user is the organizer or creator
         if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
-          throw createError('You do not have permission to publish/unpublish this event', 403);
+          throw createError(403, 'You do not have permission to publish/unpublish this event');
         }
       }
 

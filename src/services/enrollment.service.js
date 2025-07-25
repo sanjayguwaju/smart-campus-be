@@ -7,6 +7,33 @@ const logger = require('../utils/logger');
 
 class EnrollmentService {
   /**
+   * Validate course IDs and return detailed error if any are missing
+   */
+  async validateCourseIds(courseIds) {
+    if (!courseIds || courseIds.length === 0) {
+      return { valid: true, courses: [] };
+    }
+
+    const courses = await Course.find({ _id: { $in: courseIds } });
+    if (courses.length !== courseIds.length) {
+      const foundCourseIds = courses.map(course => course._id.toString());
+      const missingCourseIds = courseIds.filter(courseId => 
+        !foundCourseIds.includes(courseId.toString())
+      );
+      
+      return {
+        valid: false,
+        missingCourseIds,
+        error: missingCourseIds.length === 1 
+          ? `Course with ID ${missingCourseIds[0]} not found`
+          : `Courses with IDs ${missingCourseIds.join(', ')} not found`
+      };
+    }
+
+    return { valid: true, courses };
+  }
+
+  /**
    * Create a new enrollment
    */
   async createEnrollment(enrollmentData, createdBy) {
@@ -33,9 +60,9 @@ class EnrollmentService {
 
       // Check if courses exist (if provided)
       if (enrollmentData.courses && enrollmentData.courses.length > 0) {
-        const courses = await Course.find({ _id: { $in: enrollmentData.courses } });
-        if (courses.length !== enrollmentData.courses.length) {
-          throw createError(404, 'One or more courses not found');
+        const courseValidation = await this.validateCourseIds(enrollmentData.courses);
+        if (!courseValidation.valid) {
+          throw createError(404, courseValidation.error);
         }
       }
 
@@ -242,9 +269,9 @@ class EnrollmentService {
 
       // Check if courses exist (if being updated)
       if (updateData.courses && updateData.courses.length > 0) {
-        const courses = await Course.find({ _id: { $in: updateData.courses } });
-        if (courses.length !== updateData.courses.length) {
-          throw createError(404, 'One or more courses not found');
+        const courseValidation = await this.validateCourseIds(updateData.courses);
+        if (!courseValidation.valid) {
+          throw createError(404, courseValidation.error);
         }
       }
 
@@ -575,6 +602,44 @@ class EnrollmentService {
       };
     } catch (error) {
       logger.error('Error getting enrollments by program:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get available courses for enrollment
+   */
+  async getAvailableCourses(programId, semester, semesterTerm, academicYear) {
+    try {
+      const query = {
+        status: 'active',
+        program: programId
+      };
+
+      if (semester) {
+        query.semester = semester;
+      }
+
+      if (semesterTerm) {
+        query.semesterTerm = semesterTerm;
+      }
+
+      if (academicYear) {
+        query.year = parseInt(academicYear.split('-')[0]);
+      }
+
+      const courses = await Course.find(query)
+        .populate('faculty', 'name email')
+        .populate('department', 'name')
+        .select('name code creditHours description semester semesterTerm maxStudents currentEnrollment');
+
+      return {
+        success: true,
+        data: courses,
+        message: 'Available courses retrieved successfully'
+      };
+    } catch (error) {
+      logger.error('Error getting available courses:', error);
       throw error;
     }
   }

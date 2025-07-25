@@ -192,6 +192,47 @@ const validateEnrollmentCreation = (req, res, next) => {
       .optional()
       .messages({
         'string.pattern.base': 'Invalid created by user ID format'
+      }),
+    lastModifiedBy: Joi.string()
+      .pattern(/^[0-9a-fA-F]{24}$/)
+      .optional()
+      .messages({
+        'string.pattern.base': 'Invalid last modified by user ID format'
+      }),
+    auditTrail: Joi.array()
+      .items(
+        Joi.object({
+          action: Joi.string()
+            .valid('enrolled', 'course_added', 'course_dropped', 'status_changed', 'gpa_updated', 'document_uploaded')
+            .required()
+            .messages({
+              'any.only': 'Action must be one of: enrolled, course_added, course_dropped, status_changed, gpa_updated, document_uploaded',
+              'any.required': 'Action is required'
+            }),
+          timestamp: Joi.date()
+            .default(Date.now)
+            .optional()
+            .messages({
+              'date.base': 'Timestamp must be a valid date'
+            }),
+          performedBy: Joi.string()
+            .pattern(/^[0-9a-fA-F]{24}$/)
+            .required()
+            .messages({
+              'string.pattern.base': 'Invalid performed by user ID format',
+              'any.required': 'Performed by user ID is required'
+            }),
+          details: Joi.string()
+            .max(500)
+            .optional()
+            .messages({
+              'string.max': 'Details cannot exceed 500 characters'
+            })
+        })
+      )
+      .optional()
+      .messages({
+        'array.base': 'Audit trail must be an array'
       })
   });
 
@@ -334,6 +375,41 @@ const validateEnrollmentUpdate = (req, res, next) => {
       .optional()
       .messages({
         'string.pattern.base': 'Invalid last modified by user ID format'
+      }),
+    auditTrail: Joi.array()
+      .items(
+        Joi.object({
+          action: Joi.string()
+            .valid('enrolled', 'course_added', 'course_dropped', 'status_changed', 'gpa_updated', 'document_uploaded')
+            .required()
+            .messages({
+              'any.only': 'Action must be one of: enrolled, course_added, course_dropped, status_changed, gpa_updated, document_uploaded',
+              'any.required': 'Action is required'
+            }),
+          timestamp: Joi.date()
+            .default(Date.now)
+            .optional()
+            .messages({
+              'date.base': 'Timestamp must be a valid date'
+            }),
+          performedBy: Joi.string()
+            .pattern(/^[0-9a-fA-F]{24}$/)
+            .required()
+            .messages({
+              'string.pattern.base': 'Invalid performed by user ID format',
+              'any.required': 'Performed by user ID is required'
+            }),
+          details: Joi.string()
+            .max(500)
+            .optional()
+            .messages({
+              'string.max': 'Details cannot exceed 500 characters'
+            })
+        })
+      )
+      .optional()
+      .messages({
+        'array.base': 'Audit trail must be an array'
       })
   });
 

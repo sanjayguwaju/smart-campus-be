@@ -24,6 +24,7 @@ This document provides comprehensive examples and curl commands for the Enrollme
    - [Bulk Operations](#bulk-operations)
    - [My Enrollments (Student)](#my-enrollments-student)
    - [My Advisees (Faculty)](#my-advisees-faculty)
+   - [Get Available Courses](#get-available-courses)
 
 ## Authentication
 
@@ -838,6 +839,58 @@ curl -X GET "http://localhost:3000/api/enrollments/my-advisees" \
 }
 ```
 
+### Get Available Courses
+
+**GET** `/api/enrollments/available-courses`
+
+Retrieves available courses for enrollment based on program, semester, and academic year.
+
+**Query Parameters:**
+- `programId`: Program ID (required)
+- `semester`: Semester number (optional)
+- `semesterTerm`: Semester term (optional)
+- `academicYear`: Academic year (optional)
+
+```bash
+# Get all available courses for a program
+curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=507f1f77bcf86cd799439012" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Get courses for specific semester and term
+curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=507f1f77bcf86cd799439012&semester=1&semesterTerm=Fall&academicYear=2024-2025" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439013",
+      "name": "Introduction to Programming",
+      "code": "CS101",
+      "creditHours": 3,
+      "description": "Basic programming concepts and practices",
+      "semester": 1,
+      "semesterTerm": "Fall",
+      "maxStudents": 30,
+      "currentEnrollment": 25,
+      "faculty": {
+        "_id": "507f1f77bcf86cd799439014",
+        "name": "Dr. Smith",
+        "email": "smith@example.com"
+      },
+      "department": {
+        "_id": "507f1f77bcf86cd799439015",
+        "name": "Computer Science"
+      }
+    }
+  ],
+  "message": "Available courses retrieved successfully"
+}
+```
+
 ## Error Responses
 
 ### Validation Error (400)
@@ -891,6 +944,59 @@ curl -X GET "http://localhost:3000/api/enrollments/my-advisees" \
 - `409` - Conflict
 - `500` - Internal Server Error
 
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### 1. "One or more courses not found" Error
+
+**Problem**: When creating an enrollment, you get a 404 error saying "One or more courses not found".
+
+**Solutions**:
+- Verify that all course IDs exist in the database
+- Use the `/api/enrollments/available-courses` endpoint to get valid course IDs
+- Ensure courses are active (status: "active")
+- Check that course IDs are valid MongoDB ObjectIds
+- Run the test script: `node test-course-validation.js`
+
+**Example**:
+```bash
+# First, get available courses
+curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=YOUR_PROGRAM_ID" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Then use valid course IDs in your enrollment request
+curl -X POST http://localhost:3000/api/enrollments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "student": "VALID_STUDENT_ID",
+    "program": "VALID_PROGRAM_ID",
+    "semester": 1,
+    "semesterTerm": "Fall",
+    "academicYear": "2024-2025",
+    "courses": ["VALID_COURSE_ID_1", "VALID_COURSE_ID_2"]
+  }'
+```
+
+#### 2. "Student not found" Error
+
+**Problem**: 404 error when student ID doesn't exist.
+
+**Solution**: Verify the student exists and has the correct role.
+
+#### 3. "Program not found" Error
+
+**Problem**: 404 error when program ID doesn't exist.
+
+**Solution**: Verify the program exists and is active.
+
+#### 4. "Duplicate enrollment" Error
+
+**Problem**: 409 error when trying to create duplicate enrollment.
+
+**Solution**: Check if student is already enrolled in the same program for the same semester and academic year.
+
 ## Notes
 
 1. **Authentication**: All endpoints require a valid JWT token in the Authorization header.
@@ -904,6 +1010,7 @@ curl -X GET "http://localhost:3000/api/enrollments/my-advisees" \
 6. **Audit Trail**: All changes are logged in the audit trail for tracking purposes.
 7. **Document Management**: Supports file uploads with metadata tracking.
 8. **Bulk Operations**: Admin can perform operations on multiple enrollments at once.
+9. **Course Validation**: The system now provides detailed error messages for missing course IDs.
 
 ## Testing
 

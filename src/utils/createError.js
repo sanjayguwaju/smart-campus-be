@@ -1,4 +1,4 @@
-function createError(message, statusCode = 400) {
+function createError(statusCode, message) {
   const err = new Error(message);
   err.statusCode = statusCode;
   return err;

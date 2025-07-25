@@ -1,5 +1,5 @@
 const courseService = require('../services/course.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 const Course = require('../models/course.model');
 

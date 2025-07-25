@@ -131,4 +131,24 @@ class ResponseHandler {
   }
 }
 
-module.exports = ResponseHandler; 
+module.exports = ResponseHandler;
+
+// Export convenience functions for backward compatibility
+const handleResponse = (res, statusCode, result) => {
+  if (result && result.success === false) {
+    return ResponseHandler.error(res, statusCode, result.message, result.error);
+  }
+  return ResponseHandler.success(res, statusCode, result.message || 'Success', result.data, result.pagination);
+};
+
+const handleError = (res, error) => {
+  const statusCode = error.statusCode || error.status || 500;
+  const message = error.message || 'Internal Server Error';
+  return ResponseHandler.error(res, statusCode, message, error);
+};
+
+module.exports = {
+  ResponseHandler,
+  handleResponse,
+  handleError
+}; 

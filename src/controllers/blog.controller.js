@@ -1,5 +1,5 @@
 const blogService = require('../services/blog.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 // Get all blogs with pagination and filters
@@ -23,10 +23,10 @@ async function getBlogs(req, res) {
     const result = await blogService.getBlogs(filters, pagination);
         
     // Return blogs data with pagination at the same level
-    ResponseHandler.success(res, 200, 'Blogs retrieved successfully', result.data, result.pagination);
+    return ResponseHandler.success(res, 200, 'Blogs retrieved successfully', result.data, result.pagination);
   } catch (error) {
     logger.error('Error retrieving blogs:', error);
-    ResponseHandler.error(res, 500, 'Error retrieving blogs');
+    return ResponseHandler.error(res, 500, 'Error retrieving blogs');
   }
 }
 
@@ -37,13 +37,13 @@ async function getBlogById(req, res) {
     
     logger.info(`Blog retrieved: ${blog.title} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Blog retrieved successfully', blog);
+    return ResponseHandler.success(res, 200, 'Blog retrieved successfully', blog);
   } catch (error) {
     logger.error('Error retrieving blog:', error);
     if (error.message === 'Blog not found') {
       return ResponseHandler.notFound(res, error.message);
     }
-    ResponseHandler.error(res, 500, 'Error retrieving blog');
+    return ResponseHandler.error(res, 500, 'Error retrieving blog');
   }
 }
 
@@ -54,13 +54,13 @@ async function getBlogBySlug(req, res) {
     
     logger.info(`Blog retrieved by slug: ${blog.title} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Blog retrieved successfully', blog);
+    return ResponseHandler.success(res, 200, 'Blog retrieved successfully', blog);
   } catch (error) {
     logger.error('Error retrieving blog by slug:', error);
     if (error.message === 'Blog not found') {
       return ResponseHandler.notFound(res, error.message);
     }
-    ResponseHandler.error(res, 500, 'Error retrieving blog');
+    return ResponseHandler.error(res, 500, 'Error retrieving blog');
   }
 }
 
@@ -90,13 +90,13 @@ async function createBlog(req, res) {
     const blog = await blogService.createBlog(blogData);
     logger.info(`Blog created: ${blog.title} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 201, 'Blog created successfully', blog);
+    return ResponseHandler.success(res, 201, 'Blog created successfully', blog);
   } catch (err) {
     logger.error('Error creating blog:', err);
     if (err.message.includes('already exists')) {
       return ResponseHandler.error(res, 400, err.message);
     }
-    ResponseHandler.error(res, 500, 'Error creating blog');
+    return ResponseHandler.error(res, 500, 'Error creating blog');
   }
 }
 
@@ -122,7 +122,7 @@ async function updateBlog(req, res) {
     
     logger.info(`Blog updated: ${blog.title} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Blog updated successfully', blog);
+    return ResponseHandler.success(res, 200, 'Blog updated successfully', blog);
   } catch (error) {
     logger.error('Error updating blog:', error);
     if (error.message === 'Blog not found') {
@@ -131,7 +131,7 @@ async function updateBlog(req, res) {
     if (error.message.includes('already exists')) {
       return ResponseHandler.error(res, 400, error.message);
     }
-    ResponseHandler.error(res, 500, 'Error updating blog');
+    return ResponseHandler.error(res, 500, 'Error updating blog');
   }
 }
 
@@ -142,7 +142,7 @@ async function deleteBlog(req, res) {
     
     logger.info(`Blog deleted by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, result.message);
+    return ResponseHandler.success(res, 200, result.message);
   } catch (error) {
     logger.error('Error deleting blog:', error);
     if (error.message === 'Blog not found') {
@@ -151,7 +151,7 @@ async function deleteBlog(req, res) {
     if (error.message.includes('Cannot delete a published blog')) {
       return ResponseHandler.error(res, 400, error.message);
     }
-    ResponseHandler.error(res, 500, 'Error deleting blog');
+    return ResponseHandler.error(res, 500, 'Error deleting blog');
   }
 }
 
@@ -168,13 +168,13 @@ async function publishBlog(req, res) {
     
     logger.info(`Blog ${isPublished ? 'published' : 'unpublished'}: ${blog.title} by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, `Blog ${isPublished ? 'published' : 'unpublished'} successfully`, blog);
+    return ResponseHandler.success(res, 200, `Blog ${isPublished ? 'published' : 'unpublished'} successfully`, blog);
   } catch (error) {
     logger.error('Error publishing/unpublishing blog:', error);
     if (error.message === 'Blog not found') {
       return ResponseHandler.notFound(res, error.message);
     }
-    ResponseHandler.error(res, 500, 'Error publishing/unpublishing blog');
+    return ResponseHandler.error(res, 500, 'Error publishing/unpublishing blog');
   }
 }
 
@@ -185,10 +185,10 @@ async function getPublishedBlogs(req, res) {
     
     logger.info(`Published blogs retrieved: ${blogs.length} blogs by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Published blogs retrieved successfully', blogs);
+    return ResponseHandler.success(res, 200, 'Published blogs retrieved successfully', blogs);
   } catch (error) {
     logger.error('Error retrieving published blogs:', error);
-    ResponseHandler.error(res, 500, 'Error retrieving published blogs');
+    return ResponseHandler.error(res, 500, 'Error retrieving published blogs');
   }
 }
 
@@ -199,10 +199,10 @@ async function getBlogsByAuthor(req, res) {
     
     logger.info(`Blogs retrieved for author ${req.params.author}: ${blogs.length} blogs by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Blogs retrieved successfully', blogs);
+    return ResponseHandler.success(res, 200, 'Blogs retrieved successfully', blogs);
   } catch (error) {
     logger.error('Error retrieving blogs by author:', error);
-    ResponseHandler.error(res, 500, 'Error retrieving blogs by author');
+    return ResponseHandler.error(res, 500, 'Error retrieving blogs by author');
   }
 }
 
@@ -219,10 +219,10 @@ async function searchBlogs(req, res) {
     
     logger.info(`Blog search completed: ${blogs.length} results for "${searchTerm}" by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Blog search completed successfully', blogs);
+    return ResponseHandler.success(res, 200, 'Blog search completed successfully', blogs);
   } catch (error) {
     logger.error('Error searching blogs:', error);
-    ResponseHandler.error(res, 500, 'Error searching blogs');
+    return ResponseHandler.error(res, 500, 'Error searching blogs');
   }
 }
 
@@ -240,10 +240,10 @@ async function getBlogsByTags(req, res) {
     
     logger.info(`Blogs retrieved for tags [${tagsArray.join(', ')}]: ${blogs.length} blogs by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Blogs retrieved successfully', blogs);
+    return ResponseHandler.success(res, 200, 'Blogs retrieved successfully', blogs);
   } catch (error) {
     logger.error('Error retrieving blogs by tags:', error);
-    ResponseHandler.error(res, 500, 'Error retrieving blogs by tags');
+    return ResponseHandler.error(res, 500, 'Error retrieving blogs by tags');
   }
 }
 
@@ -254,10 +254,10 @@ async function getBlogStats(req, res) {
     
     logger.info(`Blog statistics retrieved by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Blog statistics retrieved successfully', stats);
+    return ResponseHandler.success(res, 200, 'Blog statistics retrieved successfully', stats);
   } catch (error) {
     logger.error('Error retrieving blog statistics:', error);
-    ResponseHandler.error(res, 500, 'Error retrieving blog statistics');
+    return ResponseHandler.error(res, 500, 'Error retrieving blog statistics');
   }
 }
 
@@ -269,10 +269,10 @@ async function getRecentBlogs(req, res) {
     
     logger.info(`Recent blogs retrieved: ${blogs.length} blogs by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 200, 'Recent blogs retrieved successfully', blogs);
+    return ResponseHandler.success(res, 200, 'Recent blogs retrieved successfully', blogs);
   } catch (error) {
     logger.error('Error retrieving recent blogs:', error);
-    ResponseHandler.error(res, 500, 'Error retrieving recent blogs');
+    return ResponseHandler.error(res, 500, 'Error retrieving recent blogs');
   }
 }
 
@@ -284,10 +284,10 @@ async function getPopularTags(req, res) {
     
     logger.info(`Popular tags retrieved: ${tags.length} tags by user: ${req.user.email}`);
     
-    ResponseHandler.success(res, 'Popular tags retrieved successfully', tags);
+    return ResponseHandler.success(res, 200, 'Popular tags retrieved successfully', tags);
   } catch (error) {
     logger.error('Error retrieving popular tags:', error);
-    ResponseHandler.error(res, 500, 'Error retrieving popular tags');
+    return ResponseHandler.error(res, 500, 'Error retrieving popular tags');
   }
 }
 

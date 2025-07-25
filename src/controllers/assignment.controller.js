@@ -1,5 +1,5 @@
 const assignmentService = require('../services/assignment.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 class AssignmentController {

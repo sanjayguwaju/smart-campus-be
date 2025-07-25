@@ -326,6 +326,30 @@ const getMyAdvisees = async (req, res) => {
   }
 };
 
+/**
+ * Get available courses for enrollment
+ * @route GET /api/enrollments/available-courses
+ * @access Private (Admin, Faculty, Student)
+ */
+const getAvailableCourses = async (req, res) => {
+  try {
+    const { programId, semester, semesterTerm, academicYear } = req.query;
+    
+    if (!programId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Program ID is required'
+      });
+    }
+
+    const result = await enrollmentService.getAvailableCourses(programId, semester, semesterTerm, academicYear);
+    return handleResponse(res, 200, result);
+  } catch (error) {
+    logger.error('Error in getAvailableCourses controller:', error);
+    return handleError(res, error);
+  }
+};
+
 module.exports = {
   createEnrollment,
   getEnrollments,
@@ -343,5 +367,6 @@ module.exports = {
   getEnrollmentStats,
   bulkEnrollmentOperation,
   getMyEnrollments,
-  getMyAdvisees
+  getMyAdvisees,
+  getAvailableCourses
 }; 
