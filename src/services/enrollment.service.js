@@ -4,6 +4,7 @@ const Program = require('../models/program.model');
 const Course = require('../models/course.model');
 const createError = require('../utils/createError');
 const logger = require('../utils/logger');
+const { ResponseHandler } = require('../utils/responseHandler');
 
 class EnrollmentService {
   /**
@@ -206,21 +207,16 @@ class EnrollmentService {
       const totalPages = Math.ceil(total / limit);
       const hasNextPage = page < totalPages;
       const hasPrevPage = page > 1;
-
       return {
-        success: true,
-        data: {
-          enrollments,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages,
-            hasNextPage,
-            hasPrevPage
-          }
-        },
-        message: 'Enrollments retrieved successfully'
+        enrollments,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNextPage,
+          hasPrevPage
+        }
       };
     } catch (error) {
       logger.error('Error getting enrollments:', error);

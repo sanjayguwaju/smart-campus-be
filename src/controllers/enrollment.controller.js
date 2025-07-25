@@ -1,5 +1,5 @@
 const enrollmentService = require('../services/enrollment.service');
-const { handleResponse, handleError } = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 /**
@@ -10,10 +10,10 @@ const logger = require('../utils/logger');
 const createEnrollment = async (req, res) => {
   try {
     const result = await enrollmentService.createEnrollment(req.body, req.user._id);
-    return handleResponse(res, 201, result);
+    return ResponseHandler.success(res, 201, 'Enrollment created successfully', result);
   } catch (error) {
     logger.error('Error in createEnrollment controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -58,10 +58,10 @@ const getEnrollments = async (req, res) => {
     const pagination = { page, limit, sortBy, sortOrder };
 
     const result = await enrollmentService.getEnrollments(filters, pagination);
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Enrollments retrieved successfully', result.enrollments, result.pagination);
   } catch (error) {
     logger.error('Error in getEnrollments controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 500, 'Error retrieving enrollments');
   }
 };
 
@@ -73,10 +73,13 @@ const getEnrollments = async (req, res) => {
 const getEnrollmentById = async (req, res) => {
   try {
     const result = await enrollmentService.getEnrollmentById(req.params.id);
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Enrollment retrieved successfully', result);
   } catch (error) {
     logger.error('Error in getEnrollmentById controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 500, 'Error retrieving enrollment');
   }
 };
 
@@ -92,10 +95,13 @@ const updateEnrollment = async (req, res) => {
       req.body, 
       req.user._id
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Enrollment updated successfully', result);
   } catch (error) {
     logger.error('Error in updateEnrollment controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -107,10 +113,13 @@ const updateEnrollment = async (req, res) => {
 const deleteEnrollment = async (req, res) => {
   try {
     const result = await enrollmentService.deleteEnrollment(req.params.id, req.user._id);
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Enrollment deleted successfully', result);
   } catch (error) {
     logger.error('Error in deleteEnrollment controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 500, 'Error deleting enrollment');
   }
 };
 
@@ -126,10 +135,13 @@ const addCourseToEnrollment = async (req, res) => {
       req.body.courseId,
       req.user._id
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Course added to enrollment successfully', result);
   } catch (error) {
     logger.error('Error in addCourseToEnrollment controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -145,10 +157,13 @@ const removeCourseFromEnrollment = async (req, res) => {
       req.params.courseId,
       req.user._id
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Course removed from enrollment successfully', result);
   } catch (error) {
     logger.error('Error in removeCourseFromEnrollment controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -165,10 +180,13 @@ const updateEnrollmentStatus = async (req, res) => {
       req.user._id,
       req.body.details
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Enrollment status updated successfully', result);
   } catch (error) {
     logger.error('Error in updateEnrollmentStatus controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -185,10 +203,13 @@ const updateGPA = async (req, res) => {
       req.body.cgpa,
       req.user._id
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'GPA updated successfully', result);
   } catch (error) {
     logger.error('Error in updateGPA controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -204,10 +225,13 @@ const addDocumentToEnrollment = async (req, res) => {
       req.body,
       req.user._id
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Document added to enrollment successfully', result);
   } catch (error) {
     logger.error('Error in addDocumentToEnrollment controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -223,10 +247,13 @@ const removeDocumentFromEnrollment = async (req, res) => {
       req.params.documentId,
       req.user._id
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Document removed from enrollment successfully', result);
   } catch (error) {
     logger.error('Error in removeDocumentFromEnrollment controller:', error);
-    return handleError(res, error);
+    if (error.message === 'Enrollment not found') {
+      return ResponseHandler.error(res, 404, 'Enrollment not found');
+    }
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -238,10 +265,10 @@ const removeDocumentFromEnrollment = async (req, res) => {
 const getEnrollmentsByStudent = async (req, res) => {
   try {
     const result = await enrollmentService.getEnrollmentsByStudent(req.params.studentId);
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Student enrollments retrieved successfully', result);
   } catch (error) {
     logger.error('Error in getEnrollmentsByStudent controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 500, 'Error retrieving student enrollments');
   }
 };
 
@@ -253,10 +280,10 @@ const getEnrollmentsByStudent = async (req, res) => {
 const getEnrollmentsByProgram = async (req, res) => {
   try {
     const result = await enrollmentService.getEnrollmentsByProgram(req.params.programId);
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Program enrollments retrieved successfully', result);
   } catch (error) {
     logger.error('Error in getEnrollmentsByProgram controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 500, 'Error retrieving program enrollments');
   }
 };
 
@@ -268,10 +295,10 @@ const getEnrollmentsByProgram = async (req, res) => {
 const getEnrollmentStats = async (req, res) => {
   try {
     const result = await enrollmentService.getEnrollmentStats();
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Enrollment statistics retrieved successfully', result);
   } catch (error) {
     logger.error('Error in getEnrollmentStats controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 500, 'Error retrieving enrollment statistics');
   }
 };
 
@@ -289,10 +316,10 @@ const bulkEnrollmentOperation = async (req, res) => {
       data,
       req.user._id
     );
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Bulk operation completed successfully', result);
   } catch (error) {
     logger.error('Error in bulkEnrollmentOperation controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 400, error.message);
   }
 };
 
@@ -304,10 +331,10 @@ const bulkEnrollmentOperation = async (req, res) => {
 const getMyEnrollments = async (req, res) => {
   try {
     const result = await enrollmentService.getEnrollmentsByStudent(req.user._id);
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'My enrollments retrieved successfully', result);
   } catch (error) {
     logger.error('Error in getMyEnrollments controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 500, 'Error retrieving my enrollments');
   }
 };
 
@@ -319,10 +346,10 @@ const getMyEnrollments = async (req, res) => {
 const getMyAdvisees = async (req, res) => {
   try {
     const result = await enrollmentService.getEnrollments({ advisor: req.user._id });
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'My advisees retrieved successfully', result.enrollments, result.pagination);
   } catch (error) {
     logger.error('Error in getMyAdvisees controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 500, 'Error retrieving my advisees');
   }
 };
 
@@ -336,17 +363,14 @@ const getAvailableCourses = async (req, res) => {
     const { programId, semester, semesterTerm, academicYear } = req.query;
     
     if (!programId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Program ID is required'
-      });
+      return ResponseHandler.error(res, 400, 'Program ID is required');
     }
 
     const result = await enrollmentService.getAvailableCourses(programId, semester, semesterTerm, academicYear);
-    return handleResponse(res, 200, result);
+    return ResponseHandler.success(res, 200, 'Available courses retrieved successfully', result);
   } catch (error) {
     logger.error('Error in getAvailableCourses controller:', error);
-    return handleError(res, error);
+    return ResponseHandler.error(res, 500, 'Error retrieving available courses');
   }
 };
 
