@@ -49,7 +49,7 @@ const validateSubmissionCreation = [
   
   body('files.*.fileSize')
     .optional()
-    .isInt({ min: 0 })
+    .isFloat({ min: 0 })
     .withMessage('File size cannot be negative'),
   
   body('files.*.fileType')
@@ -253,6 +253,7 @@ const validateSubmissionQuery = [
  */
 const validateFileUpload = [
   body('fileName')
+    .optional()
     .isString()
     .trim()
     .isLength({ max: 255 })
@@ -260,8 +261,8 @@ const validateFileUpload = [
   
   body('fileSize')
     .optional()
-    .isInt({ min: 1 })
-    .withMessage('File size must be at least 1 byte'),
+    .isFloat({ min: 0.001 })
+    .withMessage('File size must be at least 0.001 bytes'),
   
   body('fileType')
     .optional()

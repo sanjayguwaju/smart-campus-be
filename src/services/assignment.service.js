@@ -158,6 +158,7 @@ class AssignmentService {
 
       return {
         assignments,
+        data: assignments,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

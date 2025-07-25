@@ -30,7 +30,7 @@ class AssignmentController {
 
       const result = await assignmentService.getAssignments(query, user);
 
-      return ResponseHandler.success(res, 'Assignments retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'Assignments retrieved successfully', result.data, result.pagination);
     } catch (error) {
       logger.error('Error in getAssignments controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -47,7 +47,7 @@ class AssignmentController {
 
       const assignment = await assignmentService.getAssignmentById(id, user);
 
-      return ResponseHandler.success(res, 'Assignment retrieved successfully', assignment);
+      return ResponseHandler.success(res, 200, 'Assignment retrieved successfully', assignment);
     } catch (error) {
       logger.error('Error in getAssignmentById controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -65,7 +65,7 @@ class AssignmentController {
 
       const assignment = await assignmentService.updateAssignment(id, updateData, userId);
 
-      return ResponseHandler.success(res, 'Assignment updated successfully', assignment);
+      return ResponseHandler.success(res, 200, 'Assignment updated successfully', assignment);
     } catch (error) {
       logger.error('Error in updateAssignment controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -82,7 +82,7 @@ class AssignmentController {
 
       const result = await assignmentService.deleteAssignment(id, userId);
 
-      return ResponseHandler.success(res, result.message, null);
+      return ResponseHandler.success(res, 200, result.message);
     } catch (error) {
       logger.error('Error in deleteAssignment controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -108,7 +108,7 @@ class AssignmentController {
 
       const assignment = await assignmentService.addFileToAssignment(id, fileData, userId);
 
-      return ResponseHandler.success(res, 'File added to assignment successfully', assignment);
+      return ResponseHandler.success(res, 200, 'File added to assignment successfully', assignment);
     } catch (error) {
       logger.error('Error in addFileToAssignment controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -126,7 +126,7 @@ class AssignmentController {
 
       const assignment = await assignmentService.removeFileFromAssignment(id, fileUrl, userId);
 
-      return ResponseHandler.success(res, 'File removed from assignment successfully', assignment);
+      return ResponseHandler.success(res, 200, 'File removed from assignment successfully', assignment);
     } catch (error) {
       logger.error('Error in removeFileFromAssignment controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -144,7 +144,7 @@ class AssignmentController {
 
       const assignment = await assignmentService.updateAssignmentStatus(id, status, userId);
 
-      return ResponseHandler.success(res, 'Assignment status updated successfully', assignment);
+      return ResponseHandler.success(res, 200, 'Assignment status updated successfully', assignment);
     } catch (error) {
       logger.error('Error in updateAssignmentStatus controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -161,7 +161,7 @@ class AssignmentController {
 
       const assignments = await assignmentService.getAssignmentsByCourse(courseId, user);
 
-      return ResponseHandler.success(res, 'Course assignments retrieved successfully', assignments);
+      return ResponseHandler.success(res, 200, 'Course assignments retrieved successfully', assignments);
     } catch (error) {
       logger.error('Error in getAssignmentsByCourse controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -178,7 +178,7 @@ class AssignmentController {
 
       const assignments = await assignmentService.getAssignmentsByFaculty(facultyId, user);
 
-      return ResponseHandler.success(res, 'Faculty assignments retrieved successfully', assignments);
+      return ResponseHandler.success(res, 200, 'Faculty assignments retrieved successfully', assignments);
     } catch (error) {
       logger.error('Error in getAssignmentsByFaculty controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -194,7 +194,7 @@ class AssignmentController {
 
       const stats = await assignmentService.getAssignmentStats(user);
 
-      return ResponseHandler.success(res, 'Assignment statistics retrieved successfully', stats);
+      return ResponseHandler.success(res, 200, 'Assignment statistics retrieved successfully', stats);
     } catch (error) {
       logger.error('Error in getAssignmentStats controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -211,7 +211,7 @@ class AssignmentController {
 
       const result = await assignmentService.bulkOperation(operationData, userId);
 
-      return ResponseHandler.success(res, `Bulk operation ${result.operation} completed successfully`, result);
+      return ResponseHandler.success(res, 200, `Bulk operation ${result.operation} completed successfully`, result);
     } catch (error) {
       logger.error('Error in bulkOperation controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -227,7 +227,7 @@ class AssignmentController {
 
       const assignments = await assignmentService.getOverdueAssignments(user);
 
-      return ResponseHandler.success(res, 'Overdue assignments retrieved successfully', assignments);
+      return ResponseHandler.success(res, 200, 'Overdue assignments retrieved successfully', assignments);
     } catch (error) {
       logger.error('Error in getOverdueAssignments controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -244,7 +244,7 @@ class AssignmentController {
 
       const assignment = await assignmentService.updateAssignmentStatistics(id, statisticsData);
 
-      return ResponseHandler.success(res, 'Assignment statistics updated successfully', assignment);
+      return ResponseHandler.success(res, 200, 'Assignment statistics updated successfully', assignment);
     } catch (error) {
       logger.error('Error in updateAssignmentStatistics controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -265,7 +265,7 @@ class AssignmentController {
       const query = { ...req.query, faculty: user._id };
       const result = await assignmentService.getAssignments(query, user);
 
-      return ResponseHandler.success(res, 'My assignments retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'My assignments retrieved successfully', result.data, result.pagination);
     } catch (error) {
       logger.error('Error in getMyAssignments controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -286,7 +286,7 @@ class AssignmentController {
       const query = { ...req.query };
       const result = await assignmentService.getAssignments(query, user);
 
-      return ResponseHandler.success(res, 'Course assignments retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'Course assignments retrieved successfully', result.data, result.pagination);
     } catch (error) {
       logger.error('Error in getMyCourseAssignments controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -308,7 +308,7 @@ class AssignmentController {
       const query = { ...req.query, search: searchTerm };
       const result = await assignmentService.getAssignments(query, user);
 
-      return ResponseHandler.success(res, 'Search results retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'Search results retrieved successfully', result.data, result.pagination);
     } catch (error) {
       logger.error('Error in searchAssignments controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -326,7 +326,7 @@ class AssignmentController {
       const query = { ...req.query, assignmentType: type };
       const result = await assignmentService.getAssignments(query, user);
 
-      return ResponseHandler.success(res, `${type} assignments retrieved successfully`, result);
+      return ResponseHandler.success(res, 200, `${type} assignments retrieved successfully`, result.data, result.pagination);
     } catch (error) {
       logger.error('Error in getAssignmentsByType controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -344,7 +344,7 @@ class AssignmentController {
       const query = { ...req.query, difficulty };
       const result = await assignmentService.getAssignments(query, user);
 
-      return ResponseHandler.success(res, `${difficulty} difficulty assignments retrieved successfully`, result);
+      return ResponseHandler.success(res, 200, `${difficulty} difficulty assignments retrieved successfully`, result.data, result.pagination);
     } catch (error) {
       logger.error('Error in getAssignmentsByDifficulty controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
@@ -366,7 +366,7 @@ class AssignmentController {
       const query = { ...req.query, tags };
       const result = await assignmentService.getAssignments(query, user);
 
-      return ResponseHandler.success(res, 'Tagged assignments retrieved successfully', result);
+      return ResponseHandler.success(res, 200, 'Tagged assignments retrieved successfully', result.data, result.pagination);
     } catch (error) {
       logger.error('Error in getAssignmentsByTags controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);

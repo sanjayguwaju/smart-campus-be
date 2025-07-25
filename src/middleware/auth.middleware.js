@@ -15,7 +15,7 @@ const authenticate = async (req, res, next) => {
     }
 
     const decoded = verifyToken(token);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.userId).select('-password').lean();
     
     if (!user || !user.isActive) {
       return ResponseHandler.unauthorized(res, 'Invalid or inactive user');
