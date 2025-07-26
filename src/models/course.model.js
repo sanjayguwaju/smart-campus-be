@@ -146,7 +146,6 @@ const courseSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-courseSchema.index({ code: 1 });
 courseSchema.index({ program: 1 });
 courseSchema.index({ department: 1 });
 courseSchema.index({ faculty: 1 });

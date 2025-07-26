@@ -40,7 +40,8 @@ const userSchema = new mongoose.Schema({
     trim: true,
     minlength: [5, 'Student ID must be at least 5 characters long'],
     maxlength: [20, 'Student ID cannot exceed 20 characters'],
-    match: [/^[A-Z0-9]+$/, 'Student ID must contain only uppercase letters and numbers']
+    match: [/^[A-Z0-9]+$/, 'Student ID must contain only uppercase letters and numbers'],
+    index: true
   },
   facultyId: {
     type: String,
@@ -49,7 +50,8 @@ const userSchema = new mongoose.Schema({
     trim: true,
     minlength: [5, 'Faculty ID must be at least 5 characters long'],
     maxlength: [20, 'Faculty ID cannot exceed 20 characters'],
-    match: [/^[A-Z0-9]+$/, 'Faculty ID must contain only uppercase letters and numbers']
+    match: [/^[A-Z0-9]+$/, 'Faculty ID must contain only uppercase letters and numbers'],
+    index: true
   },
   department: {
     type: mongoose.Schema.Types.ObjectId,
@@ -106,7 +108,7 @@ const userSchema = new mongoose.Schema({
   dateOfBirth: {
     type: Date,
     validate: {
-      validator: function(date) {
+      validator: function (date) {
         return !date || date <= new Date();
       },
       message: 'Date of birth cannot be in the future'
@@ -205,18 +207,24 @@ const userSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtual for full name
-userSchema.virtual('fullName').get(function() {
-  return `${this.firstName} ${this.lastName}`;
-});
+// Create a virtual property `fullName` with getter and setter
+userSchema.virtual('fullName').
+  get(function () {
+    return `${this.firstName} ${this.lastName}`;
+  }).
+  set(function (v) {
+    const firstName = v.substring(0, v.indexOf(' '));
+    const lastName = v.substring(v.indexOf(' ') + 1);
+    this.set({ firstName, lastName });
+  });
 
-// Virtual for display name
-userSchema.virtual('displayName').get(function() {
+// Create a virtual property `displayName` with a getter that returns `fullName`
+userSchema.virtual('displayName').get(function () {
   return this.fullName;
 });
 
 // Virtual for age calculation
-userSchema.virtual('age').get(function() {
+userSchema.virtual('age').get(function () {
   if (!this.dateOfBirth) return null;
   const today = new Date();
   const birthDate = new Date(this.dateOfBirth);
@@ -229,9 +237,9 @@ userSchema.virtual('age').get(function() {
 });
 
 // Virtual for full address
-userSchema.virtual('fullAddress').get(function() {
+userSchema.virtual('fullAddress').get(function () {
   if (!this.address) return '';
-  
+
   const parts = [
     this.address.street,
     this.address.city,
@@ -239,12 +247,12 @@ userSchema.virtual('fullAddress').get(function() {
     this.address.postalCode,
     this.address.country
   ].filter(Boolean);
-  
+
   return parts.join(', ');
 });
 
 // Virtual for user identifier
-userSchema.virtual('identifier').get(function() {
+userSchema.virtual('identifier').get(function () {
   if (this.role === 'student' && this.studentId) {
     return this.studentId;
   }
@@ -255,12 +263,9 @@ userSchema.virtual('identifier').get(function() {
 });
 
 // Index for better query performance
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ department: 1 });
-userSchema.index({ studentId: 1 });
-userSchema.index({ facultyId: 1 });
 userSchema.index({ 'profile.gender': 1 });
 userSchema.index({ dateOfBirth: 1 });
 userSchema.index({ lastLogin: 1 });
@@ -268,7 +273,7 @@ userSchema.index({ lastPasswordChanged: 1 });
 userSchema.index({ isEmailVerified: 1 });
 
 // Pre-save middleware to hash password and track changes
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   // Only hash the password if it has been modified (or is new)
   if (this.isModified('password')) {
     try {
@@ -281,7 +286,7 @@ userSchema.pre('save', async function(next) {
       return next(error);
     }
   }
-  
+
   // Ensure IDs are uppercase
   if (this.isModified('studentId') && this.studentId) {
     this.studentId = this.studentId.toUpperCase();
@@ -289,12 +294,12 @@ userSchema.pre('save', async function(next) {
   if (this.isModified('facultyId') && this.facultyId) {
     this.facultyId = this.facultyId.toUpperCase();
   }
-  
+
   next();
 });
 
 // Instance method to check password
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   try {
     return await bcrypt.compare(candidatePassword, this.password);
   } catch (error) {
@@ -303,51 +308,51 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 // Instance method to check if user is admin
-userSchema.methods.isAdmin = function() {
+userSchema.methods.isAdmin = function () {
   return this.role === 'admin';
 };
 
 // Instance method to check if user is faculty
-userSchema.methods.isFaculty = function() {
+userSchema.methods.isFaculty = function () {
   return this.role === 'faculty';
 };
 
 // Instance method to check if user is student
-userSchema.methods.isStudent = function() {
+userSchema.methods.isStudent = function () {
   return this.role === 'student';
 };
 
 // Static method to find by email
-userSchema.statics.findByEmail = function(email) {
+userSchema.statics.findByEmail = function (email) {
   return this.findOne({ email: email.toLowerCase() });
 };
 
 // Static method to find active users
-userSchema.statics.findActive = function() {
+userSchema.statics.findActive = function () {
   return this.find({ isActive: true });
 };
 
 // Static method to find by role
-userSchema.statics.findByRole = function(role) {
+userSchema.statics.findByRole = function (role) {
   return this.find({ role, isActive: true });
 };
 
 // Static method to find by department
-userSchema.statics.findByDepartment = function(departmentId) {
+userSchema.statics.findByDepartment = function (departmentId) {
   return this.find({ department: departmentId, isActive: true });
 };
 
 // Static method to find unverified users
-userSchema.statics.findUnverified = function() {
+userSchema.statics.findUnverified = function () {
   return this.find({ isEmailVerified: false, isActive: true });
 };
 
 // Static method to find users by age range
-userSchema.statics.findByAgeRange = function(minAge, maxAge) {
+userSchema.statics.findByAgeRange = function (minAge, maxAge) {
   const today = new Date();
   const maxDate = new Date(today.getFullYear() - minAge, today.getMonth(), today.getDate());
   const minDate = new Date(today.getFullYear() - maxAge, today.getMonth(), today.getDate());
-  
+
   return this.find({
     dateOfBirth: { $gte: minDate, $lte: maxDate },
     isActive: true
@@ -355,7 +360,7 @@ userSchema.statics.findByAgeRange = function(minAge, maxAge) {
 };
 
 // Instance method to add audit trail entry
-userSchema.methods.addAuditEntry = function(action, ipAddress = null, userAgent = null, details = null) {
+userSchema.methods.addAuditEntry = function (action, ipAddress = null, userAgent = null, details = null) {
   this.auditTrail.push({
     action,
     timestamp: new Date(),
@@ -363,24 +368,24 @@ userSchema.methods.addAuditEntry = function(action, ipAddress = null, userAgent 
     userAgent,
     details
   });
-  
+
   // Keep only last 50 audit entries to prevent unlimited growth
   if (this.auditTrail.length > 50) {
     this.auditTrail = this.auditTrail.slice(-50);
   }
-  
+
   return this.save();
 };
 
 // Instance method to update last login
-userSchema.methods.updateLastLogin = function(ipAddress = null, userAgent = null) {
+userSchema.methods.updateLastLogin = function (ipAddress = null, userAgent = null) {
   this.lastLogin = new Date();
   this.addAuditEntry('login', ipAddress, userAgent);
   return this.save();
 };
 
 // Instance method to verify email
-userSchema.methods.verifyEmail = function() {
+userSchema.methods.verifyEmail = function () {
   this.isEmailVerified = true;
   this.emailVerificationToken = null;
   this.emailVerificationExpires = null;
@@ -389,7 +394,7 @@ userSchema.methods.verifyEmail = function() {
 };
 
 // Instance method to generate email verification token
-userSchema.methods.generateEmailVerificationToken = function() {
+userSchema.methods.generateEmailVerificationToken = function () {
   const crypto = require('crypto');
   this.emailVerificationToken = crypto.randomBytes(32).toString('hex');
   this.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -397,13 +402,13 @@ userSchema.methods.generateEmailVerificationToken = function() {
 };
 
 // Instance method to check if email verification token is valid
-userSchema.methods.isEmailVerificationTokenValid = function(token) {
-  return this.emailVerificationToken === token && 
-         this.emailVerificationExpires > new Date();
+userSchema.methods.isEmailVerificationTokenValid = function (token) {
+  return this.emailVerificationToken === token &&
+    this.emailVerificationExpires > new Date();
 };
 
 // Instance method to generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
+userSchema.methods.generatePasswordResetToken = function () {
   const crypto = require('crypto');
   this.passwordResetToken = crypto.randomBytes(32).toString('hex');
   this.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -411,20 +416,20 @@ userSchema.methods.generatePasswordResetToken = function() {
 };
 
 // Instance method to check if password reset token is valid
-userSchema.methods.isPasswordResetTokenValid = function(token) {
-  return this.passwordResetToken === token && 
-         this.passwordResetExpires > new Date();
+userSchema.methods.isPasswordResetTokenValid = function (token) {
+  return this.passwordResetToken === token &&
+    this.passwordResetExpires > new Date();
 };
 
 // Instance method to clear password reset token
-userSchema.methods.clearPasswordResetToken = function() {
+userSchema.methods.clearPasswordResetToken = function () {
   this.passwordResetToken = null;
   this.passwordResetExpires = null;
   return this.save();
 };
 
 // Instance method to get recent audit entries
-userSchema.methods.getRecentAuditEntries = function(limit = 10) {
+userSchema.methods.getRecentAuditEntries = function (limit = 10) {
   return this.auditTrail
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, limit);

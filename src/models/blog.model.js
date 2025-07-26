@@ -13,7 +13,8 @@ const blogSchema = new mongoose.Schema({
     unique: true,
     trim: true,
     lowercase: true,
-    match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens']
+    match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'],
+    index: true
   },
   author: {
     type: mongoose.Schema.Types.ObjectId,
@@ -245,7 +246,6 @@ const blogSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-blogSchema.index({ slug: 1 });
 blogSchema.index({ author: 1 });
 blogSchema.index({ status: 1 });
 blogSchema.index({ category: 1 });
