@@ -193,11 +193,11 @@ class EnrollmentService {
       // Execute query
       const [enrollments, total] = await Promise.all([
         Enrollment.find(query)
-          .populate('student', 'name email studentId')
+          .populate('student', 'firstName lastName email studentId')
           .populate('program', 'name code')
           .populate('courses', 'name code creditHours')
-          .populate('advisor', 'name email')
-          .populate('createdBy', 'name email')
+          .populate('advisor', 'firstName lastName email')
+          .populate('createdBy', 'firstName lastName email')
           .sort(sort)
           .skip(skip)
           .limit(limit),
