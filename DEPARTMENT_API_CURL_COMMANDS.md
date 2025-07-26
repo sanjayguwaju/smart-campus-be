@@ -71,7 +71,6 @@ curl -X POST "YOUR_BASE_URL/api/v1/departments" \
     "name": "Computer Science",
     "code": "CS",
     "description": "Department of Computer Science and Engineering",
-    "headOfDepartment": "Dr. John Smith",
     "contactEmail": "cs@university.edu",
     "contactPhone": "+1-555-0123",
     "location": "Engineering Building, Room 101",
@@ -98,7 +97,6 @@ curl -X POST "YOUR_BASE_URL/api/v1/departments" \
     "name": "Electrical Engineering",
     "code": "EE",
     "description": "Department specializing in electrical engineering, electronics, and power systems",
-    "headOfDepartment": "Dr. Sarah Johnson",
     "contactEmail": "ee@university.edu",
     "contactPhone": "+1-555-0456",
     "location": "Engineering Building, Room 205",
@@ -130,7 +128,6 @@ curl -X PUT "YOUR_BASE_URL/api/v1/departments/DEPARTMENT_ID" \
     "name": "Computer Science & Engineering",
     "code": "CSE",
     "description": "Updated description for Computer Science and Engineering Department",
-    "headOfDepartment": "Dr. Jane Doe",
     "contactEmail": "cse@university.edu",
     "contactPhone": "+1-555-0789",
     "location": "Engineering Building, Room 102",
@@ -144,7 +141,6 @@ curl -X PUT "YOUR_BASE_URL/api/v1/departments/DEPARTMENT_ID" \
   -H "Authorization: Bearer YOUR_ADMIN_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "headOfDepartment": "Dr. New Head",
     "contactEmail": "newemail@university.edu"
   }'
 ```
@@ -243,7 +239,6 @@ curl -X POST "YOUR_BASE_URL/api/v1/departments" \
     "name": "Test Department",
     "code": "TEST",
     "description": "A test department for API testing",
-    "headOfDepartment": "Test Head",
     "contactEmail": "test@university.edu",
     "contactPhone": "+1-555-0000",
     "location": "Test Building",

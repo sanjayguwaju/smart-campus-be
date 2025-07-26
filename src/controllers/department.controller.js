@@ -26,13 +26,12 @@ async function getDepartments(req, res) {
       limit = 10,
       search,
       status,
-      headOfDepartment,
       isActive,
       sortBy = 'name',
       sortOrder = 'asc'
     } = req.query;
 
-    const filters = { search, status, headOfDepartment, isActive };
+    const filters = { search, status, isActive };
     const pagination = { page, limit, sortBy, sortOrder };
 
     const result = await departmentService.getDepartments(filters, pagination);

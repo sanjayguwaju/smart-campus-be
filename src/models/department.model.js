@@ -23,10 +23,6 @@ const departmentSchema = new mongoose.Schema({
     trim: true,
     maxlength: 500
   },
-  headOfDepartment: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User' 
-  },
   contactEmail: {
     type: String,
     trim: true,
@@ -100,7 +96,6 @@ const departmentSchema = new mongoose.Schema({
 // Index for better search performance
 departmentSchema.index({ name: 'text', code: 'text', description: 'text' });
 departmentSchema.index({ status: 1 });
-departmentSchema.index({ headOfDepartment: 1 });
 departmentSchema.index({ isActive: 1 });
 
 // Pre-save middleware to ensure code is uppercase

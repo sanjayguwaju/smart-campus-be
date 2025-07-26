@@ -77,8 +77,6 @@ const {
  *                         type: string
  *                       description:
  *                         type: string
- *                       headOfDepartment:
- *                         type: string
  *                       contactEmail:
  *                         type: string
  *                       contactPhone:
@@ -142,9 +140,6 @@ router.get('/', authenticate, validateDepartmentQuery, departmentController.getD
  *                 type: string
  *                 maxLength: 500
  *                 description: Department description
- *               headOfDepartment:
- *                 type: string
- *                 description: Name of the head of department
  *               contactEmail:
  *                 type: string
  *                 format: email
@@ -180,8 +175,6 @@ router.get('/', authenticate, validateDepartmentQuery, departmentController.getD
  *                     code:
  *                       type: string
  *                     description:
- *                       type: string
- *                     headOfDepartment:
  *                       type: string
  *                     contactEmail:
  *                       type: string
@@ -243,8 +236,6 @@ router.post('/', authenticate, requireAdmin, validateDepartmentCreation, departm
  *                       type: string
  *                     description:
  *                       type: string
- *                     headOfDepartment:
- *                       type: string
  *                     contactEmail:
  *                       type: string
  *                     contactPhone:
@@ -305,9 +296,6 @@ router.get('/:id', authenticate, validateDepartmentId, departmentController.getD
  *                 type: string
  *                 maxLength: 500
  *                 description: Department description
- *               headOfDepartment:
- *                 type: string
- *                 description: Name of the head of department
  *               contactEmail:
  *                 type: string
  *                 format: email
@@ -342,8 +330,6 @@ router.get('/:id', authenticate, validateDepartmentId, departmentController.getD
  *                     code:
  *                       type: string
  *                     description:
- *                       type: string
- *                     headOfDepartment:
  *                       type: string
  *                     contactEmail:
  *                       type: string
@@ -440,8 +426,6 @@ router.delete('/:id', authenticate, requireAdmin, validateDepartmentId, departme
  *                         type: string
  *                       description:
  *                         type: string
- *                       headOfDepartment:
- *                         type: string
  *                       contactEmail:
  *                         type: string
  *                       contactPhone:
@@ -504,8 +488,6 @@ router.get('/active', authenticate, departmentController.getActiveDepartments);
  *                       code:
  *                         type: string
  *                       description:
- *                         type: string
- *                       headOfDepartment:
  *                         type: string
  *                       contactEmail:
  *                         type: string

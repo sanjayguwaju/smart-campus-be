@@ -20,7 +20,6 @@ class DepartmentService {
         name: departmentData.name,
         code: departmentData.code,
         description: departmentData.description,
-        headOfDepartment: departmentData.headOfDepartment,
         contactEmail: departmentData.contactEmail,
         contactPhone: departmentData.contactPhone,
         location: departmentData.location,
@@ -61,7 +60,7 @@ class DepartmentService {
   async getDepartments(filters = {}, pagination = {}) {
     try {
       const { page = 1, limit = 10, sortBy = 'name', sortOrder = 'asc' } = pagination;
-      const { search, status, headOfDepartment, isActive } = filters;
+      const { search, status, isActive } = filters;
 
       // Build query
       const query = {};
@@ -76,10 +75,6 @@ class DepartmentService {
 
       if (status !== undefined) {
         query.status = status;
-      }
-
-      if (headOfDepartment !== undefined) {
-        query.headOfDepartment = headOfDepartment;
       }
 
       if (isActive !== undefined) {
@@ -157,7 +152,6 @@ class DepartmentService {
       if (updateData.name !== undefined) data.name = updateData.name;
       if (updateData.code !== undefined) data.code = updateData.code;
       if (updateData.description !== undefined) data.description = updateData.description;
-      if (updateData.headOfDepartment !== undefined) data.headOfDepartment = updateData.headOfDepartment;
       if (updateData.contactEmail !== undefined) data.contactEmail = updateData.contactEmail;
       if (updateData.contactPhone !== undefined) data.contactPhone = updateData.contactPhone;
       if (updateData.location !== undefined) data.location = updateData.location;

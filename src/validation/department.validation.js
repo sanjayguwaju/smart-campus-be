@@ -36,13 +36,6 @@ const validateDepartmentCreation = (req, res, next) => {
       .messages({
         'string.max': 'Description cannot exceed 500 characters'
       }),
-    headOfDepartment: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .optional()
-      .messages({
-        'string.pattern.base': 'Invalid head of department ID format',
-        'string.empty': 'Head of department ID cannot be empty'
-      }),
     contactEmail: Joi.string()
       .email()
       .optional()
@@ -176,14 +169,6 @@ const validateDepartmentUpdate = (req, res, next) => {
       .trim()
       .messages({
         'string.max': 'Description cannot exceed 500 characters'
-      }),
-    headOfDepartment: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .optional()
-      .allow('')
-      .messages({
-        'string.pattern.base': 'Invalid head of department ID format',
-        'string.empty': 'Head of department ID cannot be empty'
       }),
     contactEmail: Joi.string()
       .email()
@@ -349,18 +334,12 @@ const validateDepartmentQuery = (req, res, next) => {
       .messages({
         'boolean.base': 'isActive must be a boolean'
       }),
-    headOfDepartment: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .optional()
-      .messages({
-        'string.pattern.base': 'Invalid head of department ID format'
-      }),
     sortBy: Joi.string()
-      .valid('name', 'code', 'status', 'isActive', 'headOfDepartment', 'createdAt', 'updatedAt')
+      .valid('name', 'code', 'status', 'isActive', 'createdAt', 'updatedAt')
       .default('name')
       .optional()
       .messages({
-        'any.only': 'Sort by must be one of: name, code, status, isActive, headOfDepartment, createdAt, updatedAt'
+        'any.only': 'Sort by must be one of: name, code, status, isActive, createdAt, updatedAt'
       }),
     sortOrder: Joi.string()
       .valid('asc', 'desc')
@@ -417,13 +396,6 @@ const validateDepartmentStatusUpdate = (req, res, next) => {
  */
 const validateDepartmentHeadAssignment = (req, res, next) => {
   const schema = Joi.object({
-    headOfDepartment: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .required()
-      .messages({
-        'string.pattern.base': 'Invalid head of department ID format',
-        'any.required': 'Head of department ID is required'
-      }),
     lastModifiedBy: Joi.string()
       .pattern(/^[0-9a-fA-F]{24}$/)
       .required()
