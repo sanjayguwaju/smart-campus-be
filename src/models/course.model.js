@@ -24,11 +24,6 @@ const courseSchema = new mongoose.Schema({
     min: [1, 'Semester must be at least 1'],
     max: [12, 'Semester cannot exceed 12']
   },
-  semesterTerm: { 
-    type: String, 
-    enum: ['Fall', 'Spring', 'Summer', 'Winter'],
-    required: true
-  },
   faculty: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   description: { 
     type: String,
@@ -151,7 +146,7 @@ courseSchema.index({ department: 1 });
 courseSchema.index({ faculty: 1 });
 courseSchema.index({ status: 1 });
 courseSchema.index({ courseType: 1 });
-courseSchema.index({ semester: 1, semesterTerm: 1, year: 1 });
+courseSchema.index({ semester: 1, year: 1 });
 courseSchema.index({ 'location.building': 1, 'location.room': 1 });
 
 // Middleware to always set 'name' from 'title'
@@ -233,7 +228,6 @@ courseSchema.statics.findAvailable = function() {
 courseSchema.statics.findBySemester = function(semester, term, year) {
   const query = { status: 'active' };
   if (semester) query.semester = semester;
-  if (term) query.semesterTerm = term;
   if (year) query.year = year;
   
   return this.find(query).sort({ code: 1 });

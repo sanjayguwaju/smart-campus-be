@@ -31,13 +31,6 @@ const validateEnrollmentCreation = (req, res, next) => {
         'number.max': 'Semester cannot exceed 12',
         'any.required': 'Semester is required'
       }),
-    semesterTerm: Joi.string()
-      .valid('Fall', 'Spring', 'Summer', 'Winter')
-      .required()
-      .messages({
-        'any.only': 'Semester term must be one of: Fall, Spring, Summer, Winter',
-        'any.required': 'Semester term is required'
-      }),
     academicYear: Joi.string()
       .pattern(/^\d{4}-\d{4}$/)
       .required()
@@ -261,12 +254,6 @@ const validateEnrollmentUpdate = (req, res, next) => {
         'number.integer': 'Semester must be an integer',
         'number.min': 'Semester must be at least 1',
         'number.max': 'Semester cannot exceed 12'
-      }),
-    semesterTerm: Joi.string()
-      .valid('Fall', 'Spring', 'Summer', 'Winter')
-      .optional()
-      .messages({
-        'any.only': 'Semester term must be one of: Fall, Spring, Summer, Winter'
       }),
     academicYear: Joi.string()
       .pattern(/^\d{4}-\d{4}$/)
@@ -502,12 +489,6 @@ const validateEnrollmentQuery = (req, res, next) => {
         'number.integer': 'Semester must be an integer',
         'number.min': 'Semester must be at least 1',
         'number.max': 'Semester cannot exceed 12'
-      }),
-    semesterTerm: Joi.string()
-      .valid('Fall', 'Spring', 'Summer', 'Winter')
-      .optional()
-      .messages({
-        'any.only': 'Semester term must be one of: Fall, Spring, Summer, Winter'
       }),
     academicYear: Joi.string()
       .pattern(/^\d{4}-\d{4}$/)

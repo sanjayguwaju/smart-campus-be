@@ -52,7 +52,6 @@ Creates a new enrollment for a student in a program.
 - `student`: Student ID (ObjectId)
 - `program`: Program ID (ObjectId)
 - `semester`: Semester number (1-12)
-- `semesterTerm`: Semester term (Fall, Spring, Summer, Winter)
 - `academicYear`: Academic year in format YYYY-YYYY
 
 **Optional Fields:**
@@ -71,7 +70,6 @@ curl -X POST http://localhost:3000/api/enrollments \
     "student": "507f1f77bcf86cd799439011",
     "program": "507f1f77bcf86cd799439012",
     "semester": 1,
-    "semesterTerm": "Fall",
     "academicYear": "2024-2025",
     "courses": ["507f1f77bcf86cd799439013"],
     "status": "active",
@@ -107,7 +105,6 @@ curl -X POST http://localhost:3000/api/enrollments \
       "code": "CS"
     },
     "semester": 1,
-    "semesterTerm": "Fall",
     "academicYear": "2024-2025",
     "status": "active",
     "enrollmentType": "full_time",
@@ -137,7 +134,6 @@ Retrieves all enrollments with pagination and filtering options.
 - `student`: Filter by student ID
 - `program`: Filter by program ID
 - `semester`: Filter by semester
-- `semesterTerm`: Filter by semester term
 - `academicYear`: Filter by academic year
 - `status`: Filter by status
 - `enrollmentType`: Filter by enrollment type
@@ -181,7 +177,6 @@ curl -X GET "http://localhost:3000/api/enrollments?search=computer science&progr
           "code": "CS"
         },
         "semester": 1,
-        "semesterTerm": "Fall",
         "academicYear": "2024-2025",
         "status": "active",
         "enrollmentType": "full_time",
@@ -245,7 +240,6 @@ curl -X GET "http://localhost:3000/api/enrollments/507f1f77bcf86cd799439015" \
       }
     ],
     "semester": 1,
-    "semesterTerm": "Fall",
     "academicYear": "2024-2025",
     "status": "active",
     "enrollmentType": "full_time",
@@ -301,7 +295,6 @@ curl -X PUT "http://localhost:3000/api/enrollments/507f1f77bcf86cd799439015" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "semester": 2,
-    "semesterTerm": "Spring",
     "academicYear": "2024-2025",
     "status": "active",
     "gpa": 3.7,
@@ -317,7 +310,6 @@ curl -X PUT "http://localhost:3000/api/enrollments/507f1f77bcf86cd799439015" \
   "data": {
     "_id": "507f1f77bcf86cd799439015",
     "semester": 2,
-    "semesterTerm": "Spring",
     "academicYear": "2024-2025",
     "status": "active",
     "gpa": 3.7,
@@ -572,7 +564,6 @@ curl -X GET "http://localhost:3000/api/enrollments/student/507f1f77bcf86cd799439
         "code": "CS"
       },
       "semester": 1,
-      "semesterTerm": "Fall",
       "academicYear": "2024-2025",
       "status": "active",
       "enrollmentType": "full_time",
@@ -615,7 +606,6 @@ curl -X GET "http://localhost:3000/api/enrollments/program/507f1f77bcf86cd799439
         "code": "CS"
       },
       "semester": 1,
-      "semesterTerm": "Fall",
       "academicYear": "2024-2025",
       "status": "active",
       "enrollmentType": "full_time",
@@ -773,7 +763,6 @@ curl -X GET "http://localhost:3000/api/enrollments/my-enrollments" \
         "code": "CS"
       },
       "semester": 1,
-      "semesterTerm": "Fall",
       "academicYear": "2024-2025",
       "status": "active",
       "enrollmentType": "full_time",
@@ -817,7 +806,6 @@ curl -X GET "http://localhost:3000/api/enrollments/my-advisees" \
           "code": "CS"
         },
         "semester": 1,
-        "semesterTerm": "Fall",
         "academicYear": "2024-2025",
         "status": "active",
         "enrollmentType": "full_time",
@@ -848,18 +836,12 @@ Retrieves available courses for enrollment based on program, semester, and acade
 **Query Parameters:**
 - `programId`: Program ID (required)
 - `semester`: Semester number (optional)
-- `semesterTerm`: Semester term (optional)
 - `academicYear`: Academic year (optional)
 
 ```bash
 # Get all available courses for a program
 curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=507f1f77bcf86cd799439012" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
-
-# Get courses for specific semester and term
-curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=507f1f77bcf86cd799439012&semester=1&semesterTerm=Fall&academicYear=2024-2025" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
 
 **Response:**
 ```json
@@ -873,7 +855,6 @@ curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=5
       "creditHours": 3,
       "description": "Basic programming concepts and practices",
       "semester": 1,
-      "semesterTerm": "Fall",
       "maxStudents": 30,
       "currentEnrollment": 25,
       "faculty": {
@@ -973,7 +954,6 @@ curl -X POST http://localhost:3000/api/enrollments \
     "student": "VALID_STUDENT_ID",
     "program": "VALID_PROGRAM_ID",
     "semester": 1,
-    "semesterTerm": "Fall",
     "academicYear": "2024-2025",
     "courses": ["VALID_COURSE_ID_1", "VALID_COURSE_ID_2"]
   }'

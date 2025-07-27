@@ -17,11 +17,6 @@ const enrollmentSchema = new mongoose.Schema({
     min: 1,
     max: 12
   },
-  semesterTerm: {
-    type: String,
-    enum: ['Fall', 'Spring', 'Summer', 'Winter'],
-    required: true
-  },
   academicYear: {
     type: String,
     required: true,
@@ -174,7 +169,7 @@ enrollmentSchema.index({ 'auditTrail.timestamp': -1 });
 
 // Compound indexes
 enrollmentSchema.index({ student: 1, program: 1, semester: 1, academicYear: 1 }, { unique: true });
-enrollmentSchema.index({ program: 1, semester: 1, semesterTerm: 1, academicYear: 1 });
+enrollmentSchema.index({ program: 1, semester: 1, academicYear: 1 });
 
 // Pre-save middleware
 enrollmentSchema.pre('save', function(next) {
@@ -198,11 +193,6 @@ enrollmentSchema.virtual('enrollmentDuration').get(function() {
   if (!this.enrolledAt) return 0;
   const endDate = this.completedAt || new Date();
   return Math.floor((endDate - this.enrolledAt) / (1000 * 60 * 60 * 24 * 365.25));
-});
-
-// Virtual for current semester
-enrollmentSchema.virtual('currentSemester').get(function() {
-  return `${this.semester}${this.semesterTerm ? ' - ' + this.semesterTerm : ''}`;
 });
 
 // Virtual for full academic period
@@ -339,7 +329,6 @@ enrollmentSchema.methods.getSummary = function() {
     student: this.student,
     program: this.program,
     semester: this.semester,
-    semesterTerm: this.semesterTerm,
     academicYear: this.academicYear,
     status: this.status,
     enrollmentType: this.enrollmentType,

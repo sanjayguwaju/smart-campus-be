@@ -31,7 +31,6 @@ const getEnrollments = async (req, res) => {
       student,
       program,
       semester,
-      semesterTerm,
       academicYear,
       status,
       enrollmentType,
@@ -47,7 +46,6 @@ const getEnrollments = async (req, res) => {
       student, 
       program, 
       semester, 
-      semesterTerm,
       academicYear,
       status, 
       enrollmentType,
@@ -360,13 +358,13 @@ const getMyAdvisees = async (req, res) => {
  */
 const getAvailableCourses = async (req, res) => {
   try {
-    const { programId, semester, semesterTerm, academicYear } = req.query;
+    const { programId, semester, academicYear } = req.query;
     
     if (!programId) {
       return ResponseHandler.error(res, 400, 'Program ID is required');
     }
 
-    const result = await enrollmentService.getAvailableCourses(programId, semester, semesterTerm, academicYear);
+    const result = await enrollmentService.getAvailableCourses(programId, semester, academicYear);
     return ResponseHandler.success(res, 200, 'Available courses retrieved successfully', result);
   } catch (error) {
     logger.error('Error in getAvailableCourses controller:', error);

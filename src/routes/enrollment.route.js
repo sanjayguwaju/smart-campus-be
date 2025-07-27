@@ -24,7 +24,6 @@ const {
  *         - student
  *         - program
  *         - semester
- *         - semesterTerm
  *         - academicYear
  *       properties:
  *         student:
@@ -38,10 +37,6 @@ const {
  *           minimum: 1
  *           maximum: 12
  *           description: Semester number
- *         semesterTerm:
- *           type: string
- *           enum: [Fall, Spring, Summer, Winter]
- *           description: Semester term
  *         academicYear:
  *           type: string
  *           pattern: '^\\d{4}-\\d{4}$'
@@ -118,7 +113,6 @@ const {
  *         student: "507f1f77bcf86cd799439011"
  *         program: "507f1f77bcf86cd799439012"
  *         semester: 1
- *         semesterTerm: "Fall"
  *         academicYear: "2024-2025"
  *         courses: ["507f1f77bcf86cd799439013"]
  *         status: "active"
@@ -948,12 +942,6 @@ router.get(
  *           maximum: 12
  *         description: Filter by semester
  *       - in: query
- *         name: semesterTerm
- *         schema:
- *           type: string
- *           enum: [Fall, Spring, Summer, Winter]
- *         description: Filter by semester term
- *       - in: query
  *         name: academicYear
  *         schema:
  *           type: string
@@ -986,8 +974,6 @@ router.get(
  *                         type: string
  *                       semester:
  *                         type: number
- *                       semesterTerm:
- *                         type: string
  *                       maxStudents:
  *                         type: number
  *                       currentEnrollment:

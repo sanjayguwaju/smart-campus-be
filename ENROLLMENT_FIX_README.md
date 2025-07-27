@@ -51,11 +51,6 @@ if (!courseValidation.valid) {
 curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=YOUR_PROGRAM_ID" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
-# Get courses for specific semester and term
-curl -X GET "http://localhost:3000/api/enrollments/available-courses?programId=YOUR_PROGRAM_ID&semester=1&semesterTerm=Fall" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
 ### 3. Test Script
 - **File**: `test-course-validation.js`
 - **Purpose**: Help users validate course IDs and troubleshoot enrollment issues
@@ -99,7 +94,6 @@ curl -X POST http://localhost:3000/api/enrollments \
     "student": "VALID_STUDENT_ID",
     "program": "VALID_PROGRAM_ID",
     "semester": 1,
-    "semesterTerm": "Fall",
     "academicYear": "2024-2025",
     "courses": ["VALID_COURSE_ID_1", "VALID_COURSE_ID_2"]
   }'
@@ -166,7 +160,6 @@ To test the fixes:
        "student": "VALID_STUDENT_ID",
        "program": "VALID_PROGRAM_ID",
        "semester": 1,
-       "semesterTerm": "Fall",
        "academicYear": "2024-2025",
        "courses": ["VALID_COURSE_ID"]
      }'

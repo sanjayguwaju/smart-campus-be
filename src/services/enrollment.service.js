@@ -125,7 +125,6 @@ class EnrollmentService {
         student, 
         program, 
         semester, 
-        semesterTerm,
         academicYear,
         status, 
         enrollmentType,
@@ -153,10 +152,6 @@ class EnrollmentService {
 
       if (semester !== undefined) {
         query.semester = semester;
-      }
-
-      if (semesterTerm) {
-        query.semesterTerm = semesterTerm;
       }
 
       if (academicYear) {
@@ -282,7 +277,6 @@ class EnrollmentService {
       const data = {};
       
       if (updateData.semester !== undefined) data.semester = updateData.semester;
-      if (updateData.semesterTerm !== undefined) data.semesterTerm = updateData.semesterTerm;
       if (updateData.academicYear !== undefined) data.academicYear = updateData.academicYear;
       if (updateData.courses !== undefined) data.courses = updateData.courses;
       if (updateData.status !== undefined) data.status = updateData.status;
@@ -605,7 +599,7 @@ class EnrollmentService {
   /**
    * Get available courses for enrollment
    */
-  async getAvailableCourses(programId, semester, semesterTerm, academicYear) {
+  async getAvailableCourses(programId, semester, academicYear) {
     try {
       const query = {
         status: 'active',
@@ -616,10 +610,6 @@ class EnrollmentService {
         query.semester = semester;
       }
 
-      if (semesterTerm) {
-        query.semesterTerm = semesterTerm;
-      }
-
       if (academicYear) {
         query.year = parseInt(academicYear.split('-')[0]);
       }
@@ -627,7 +617,7 @@ class EnrollmentService {
       const courses = await Course.find(query)
         .populate('faculty', 'name email')
         .populate('department', 'name')
-        .select('name code creditHours description semester semesterTerm maxStudents currentEnrollment');
+        .select('name code creditHours description semester maxStudents currentEnrollment');
 
       return {
         success: true,

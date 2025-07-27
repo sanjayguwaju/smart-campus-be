@@ -63,11 +63,6 @@ const validateCourseCreation = [
     .isInt({ min: 1, max: 12 })
     .withMessage('Semester must be a number between 1 and 12'),
   
-  body('semesterTerm')
-    .optional()
-    .isIn(['Fall', 'Spring', 'Summer', 'Winter'])
-    .withMessage('Semester term must be Fall, Spring, Summer, or Winter'),
-  
   body('year')
     .isInt({ min: 2020, max: 2030 })
     .withMessage('Year must be between 2020 and 2030'),
@@ -176,10 +171,6 @@ const validateCourseUpdate = [
   body('semester')
     .isInt({ min: 1, max: 12 })
     .withMessage('Semester must be a number between 1 and 12'),
-  
-  body('semesterTerm')
-    .isIn(['Fall', 'Spring', 'Summer', 'Winter'])
-    .withMessage('Semester term must be Fall, Spring, Summer, or Winter'),
   
   body('year')
     .optional()
