@@ -527,6 +527,114 @@ class CourseController {
       return ResponseHandler.error(res, 500, 'Failed to get enrollment status');
     }
   }
+
+  /**
+   * Get all courses a student is enrolled in
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async getStudentCourses(req, res) {
+    try {
+      const { studentId } = req.params;
+      
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+      
+      // Sorting parameters
+      const sortBy = req.query.sortBy || 'name';
+      const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
+      
+      // Filter parameters
+      const status = req.query.status || 'active';
+      const semester = req.query.semester ? parseInt(req.query.semester) : null;
+      const year = req.query.year ? parseInt(req.query.year) : null;
+
+      // First, check if student exists
+      const User = require('../models/user.model');
+      const student = await User.findById(studentId);
+      if (!student) {
+        return ResponseHandler.notFound(res, 'Student not found');
+      }
+
+      // Find enrollments for the student
+      const Enrollment = require('../models/enrollment.model');
+      const enrollments = await Enrollment.find({
+        student: studentId,
+        status: { $in: ['active', 'completed'] }
+      }).populate('courses');
+
+      // Extract all course IDs from enrollments
+      const courseIds = [];
+      enrollments.forEach(enrollment => {
+        if (enrollment.courses && enrollment.courses.length > 0) {
+          courseIds.push(...enrollment.courses.map(course => course._id));
+        }
+      });
+
+      if (courseIds.length === 0) {
+        return ResponseHandler.success(res, 200, 'No courses found for this student', [], {
+          page,
+          limit,
+          total: 0,
+          pages: 0
+        });
+      }
+
+      // Build course query
+      const courseQuery = {
+        _id: { $in: courseIds }
+      };
+
+      // Add filters
+      if (status) {
+        courseQuery.status = status;
+      }
+      if (semester) {
+        courseQuery.semester = semester;
+      }
+      if (year) {
+        courseQuery.year = year;
+      }
+
+      // Get total count for pagination
+      const total = await Course.countDocuments(courseQuery);
+
+      // Get courses with pagination and sorting
+      const courses = await Course.find(courseQuery)
+        .populate('faculty', 'firstName lastName email')
+        .sort({ [sortBy]: sortOrder })
+        .skip(skip)
+        .limit(limit);
+
+      // Format the response data
+      const formattedCourses = courses.map(course => ({
+        course_id: course._id,
+        course_name: course.name || course.title,
+        faculty_id: course.faculty?._id,
+        semester: `${course.semester} ${course.year}`,
+        code: course.code,
+        creditHours: course.creditHours,
+        year: course.year,
+        status: course.status,
+        faculty: course.faculty
+      }));
+
+      // Calculate pagination info
+      const pages = Math.ceil(total / limit);
+
+      return ResponseHandler.success(res, 200, 'Courses retrieved successfully', formattedCourses, {
+        page,
+        limit,
+        total,
+        pages
+      });
+    } catch (error) {
+      logger.error('Get student courses error:', error);
+      return ResponseHandler.error(res, 500, 'Failed to retrieve student courses');
+    }
+  }
 }
 
 module.exports = new CourseController(); 

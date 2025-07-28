@@ -342,6 +342,17 @@ const validateAdminRegistration = [
   handleValidationErrors
 ];
 
+/**
+ * Student ID parameter validation
+ */
+const validateStudentId = [
+  param('studentId')
+    .isMongoId()
+    .withMessage('Invalid student ID format'),
+  
+  handleValidationErrors
+];
+
 module.exports = {
   validateUserRegistration,
   validateUserLogin,
@@ -353,5 +364,6 @@ module.exports = {
   validateForgotPassword,
   validateResetPassword,
   validateAdminRegistration,
+  validateStudentId,
   handleValidationErrors
 }; 

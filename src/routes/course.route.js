@@ -13,6 +13,7 @@ const {
   validateAssignmentSubmission,
   validateAssignmentGrading
 } = require('../validation/course.validation');
+const { validateStudentId } = require('../validation/user.validation');
 
 /**
  * @swagger
@@ -987,5 +988,130 @@ router.get('/search', authenticate, courseController.searchCourses);
  *         description: Enrollment status retrieved successfully
  */
 router.get('/:courseId/enrollment-status', authenticate, validateCourseId, courseController.getEnrollmentStatus);
+
+/**
+ * @swagger
+ * /api/v1/student/{studentId}/courses:
+ *   get:
+ *     summary: Get all courses a student is enrolled in
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the student whose courses to retrieve
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of courses per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [name, code, semester, year, creditHours]
+ *           default: name
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, inactive, archived, draft]
+ *           default: active
+ *         description: Filter by course status
+ *       - in: query
+ *         name: semester
+ *         schema:
+ *           type: integer
+ *         description: Filter by semester
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         description: Filter by academic year
+ *     responses:
+ *       200:
+ *         description: Student courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       course_id:
+ *                         type: string
+ *                       course_name:
+ *                         type: string
+ *                       faculty_id:
+ *                         type: string
+ *                       semester:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       creditHours:
+ *                         type: number
+ *                       year:
+ *                         type: number
+ *                       status:
+ *                         type: string
+ *                       faculty:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           firstName:
+ *                             type: string
+ *                           lastName:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ *       404:
+ *         description: Student not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/student/:studentId/courses', authenticate, validateStudentId, courseController.getStudentCourses);
+
+
 
 module.exports = router; 
