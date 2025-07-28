@@ -21,7 +21,7 @@ const validateProgramCreation = [
   body('level')
     .notEmpty()
     .withMessage('Program level is required')
-    .isIn(['Undergraduate', 'Postgraduate'])
+    .isIn(['Certificate', 'Diploma', 'Undergraduate', 'Postgraduate', 'Doctorate'])
     .withMessage('Program level must be either "Undergraduate" or "Postgraduate"'),
   
   body('duration')

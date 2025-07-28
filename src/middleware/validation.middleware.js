@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 
 /**
  * Middleware to validate request using express-validator

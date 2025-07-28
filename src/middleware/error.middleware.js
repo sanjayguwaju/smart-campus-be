@@ -1,5 +1,5 @@
 const logger = require('../utils/logger');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 
 /**
  * Global error handling middleware

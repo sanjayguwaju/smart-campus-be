@@ -1,5 +1,5 @@
 const { body, param, query, validationResult } = require('express-validator');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 
 /**
  * Validation result handler
@@ -62,11 +62,6 @@ const validateCourseCreation = [
   body('semester')
     .isInt({ min: 1, max: 12 })
     .withMessage('Semester must be a number between 1 and 12'),
-  
-  body('semesterTerm')
-    .optional()
-    .isIn(['Fall', 'Spring', 'Summer', 'Winter'])
-    .withMessage('Semester term must be Fall, Spring, Summer, or Winter'),
   
   body('year')
     .isInt({ min: 2020, max: 2030 })
@@ -176,10 +171,6 @@ const validateCourseUpdate = [
   body('semester')
     .isInt({ min: 1, max: 12 })
     .withMessage('Semester must be a number between 1 and 12'),
-  
-  body('semesterTerm')
-    .isIn(['Fall', 'Spring', 'Summer', 'Winter'])
-    .withMessage('Semester term must be Fall, Spring, Summer, or Winter'),
   
   body('year')
     .optional()

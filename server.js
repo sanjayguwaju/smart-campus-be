@@ -21,6 +21,9 @@ const noticeRoutes = require('./src/routes/notice.route');
 const programRoutes = require('./src/routes/program.route');
 const blogRoutes = require('./src/routes/blog.route');
 const departmentRoutes = require('./src/routes/department.route');
+const enrollmentRoutes = require('./src/routes/enrollment.route');
+const assignmentRoutes = require('./src/routes/assignment.route');
+const submissionRoutes = require('./src/routes/submission.route');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -131,6 +134,9 @@ app.use(`/api/${API_VERSION}/notices`, noticeRoutes);
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
 app.use(`/api/${API_VERSION}/blogs`, blogRoutes);
 app.use(`/api/${API_VERSION}/departments`, departmentRoutes);
+app.use(`/api/${API_VERSION}/enrollments`, enrollmentRoutes);
+app.use(`/api/${API_VERSION}/assignments`, assignmentRoutes);
+app.use(`/api/${API_VERSION}/submissions`, submissionRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

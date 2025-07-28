@@ -1,5 +1,5 @@
 const eventService = require('../services/event.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 /**
@@ -121,7 +121,7 @@ class EventController {
   async createEvent(req, res) {
     try {
       const eventData = req.body;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const event = await eventService.createEvent(eventData, userId);
 

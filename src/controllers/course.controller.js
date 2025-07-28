@@ -1,5 +1,5 @@
 const courseService = require('../services/course.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 const Course = require('../models/course.model');
 
@@ -73,6 +73,7 @@ class CourseController {
    */
   async createCourse(req, res) {
     try {
+      req.body.createdBy = req?.user?._id;
       const course = await Course.create(req.body);
       await course.populate('faculty', 'firstName lastName email department');
       await course.populate('program', 'name level duration semesters department');
