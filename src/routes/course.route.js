@@ -659,6 +659,174 @@ router.get('/faculty/:facultyId/students', authenticate, courseController.getStu
 
 /**
  * @swagger
+ * /api/v1/courses/faculty/{facultyId}/students/aggregated:
+ *   get:
+ *     summary: Get faculty students data using efficient aggregation pipeline
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: facultyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the faculty member
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of students per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [firstName, lastName, email, studentId, gpa, totalCredits, courseCount]
+ *           default: firstName
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *       - in: query
+ *         name: courseId
+ *         schema:
+ *           type: string
+ *         description: Filter by specific course ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search students by name, email, or student ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, completed, dropped, suspended, graduated]
+ *           default: active
+ *         description: Filter by enrollment status
+ *     responses:
+ *       200:
+ *         description: Faculty students data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       firstName:
+ *                         type: string
+ *                       lastName:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       studentId:
+ *                         type: string
+ *                       department:
+ *                         type: object
+ *                       phone:
+ *                         type: string
+ *                       avatar:
+ *                         type: string
+ *                       courses:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             _id:
+ *                               type: string
+ *                             title:
+ *                               type: string
+ *                             code:
+ *                               type: string
+ *                             courseType:
+ *                               type: string
+ *                             creditHours:
+ *                               type: number
+ *                             semester:
+ *                               type: number
+ *                             year:
+ *                               type: number
+ *                             currentEnrollment:
+ *                               type: number
+ *                             maxStudents:
+ *                               type: number
+ *                       totalCredits:
+ *                         type: number
+ *                       courseCount:
+ *                         type: number
+ *                       enrollmentStatus:
+ *                         type: string
+ *                       enrollmentType:
+ *                         type: string
+ *                       gpa:
+ *                         type: number
+ *                       cgpa:
+ *                         type: number
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     totalStudents:
+ *                       type: integer
+ *                     totalCourses:
+ *                       type: integer
+ *                     averageStudentsPerCourse:
+ *                       type: number
+ *                     faculty:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         facultyId:
+ *                           type: string
+ *                         department:
+ *                           type: object
+ *       404:
+ *         description: Faculty not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/faculty/:facultyId/students/aggregated', authenticate, courseController.getFacultyStudentsAggregated);
+
+/**
+ * @swagger
  * /api/v1/courses/department/{department}:
  *   get:
  *     summary: Get courses by department

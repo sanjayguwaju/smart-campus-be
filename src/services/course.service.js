@@ -695,6 +695,233 @@ class CourseService {
   }
 
   /**
+   * Get students by faculty using aggregation pipeline
+   * @param {string} facultyId - Faculty ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} Aggregated faculty students data
+   */
+  async getFacultyStudentsAggregated(facultyId, options = {}) {
+    try {
+      const { 
+        page = 1, 
+        limit = 10, 
+        sortBy = 'firstName', 
+        sortOrder = 'asc',
+        courseId,
+        search,
+        status = 'active'
+      } = options;
+
+      // Validate faculty exists and is faculty
+      const faculty = await User.findById(facultyId);
+      if (!faculty || faculty.role !== 'faculty') {
+        throw new Error('Faculty not found or invalid faculty ID');
+      }
+
+      // Build aggregation pipeline
+      const pipeline = [];
+
+      // Step 1: Match courses taught by the faculty
+      const courseMatch = {
+        faculty: new mongoose.Types.ObjectId(facultyId),
+        status: 'active'
+      };
+      
+      if (courseId) {
+        courseMatch._id = new mongoose.Types.ObjectId(courseId);
+      }
+
+      pipeline.push({
+        $match: courseMatch
+      });
+
+      // Step 2: Lookup enrollments for these courses
+      pipeline.push({
+        $lookup: {
+          from: 'enrollments',
+          let: { courseId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $in: ['$$courseId', '$courses'] },
+                    { $eq: ['$status', status] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'enrollments'
+        }
+      });
+
+      // Step 3: Unwind enrollments to get individual enrollment records
+      pipeline.push({
+        $unwind: {
+          path: '$enrollments',
+          preserveNullAndEmptyArrays: false
+        }
+      });
+
+      // Step 4: Lookup student details
+      pipeline.push({
+        $lookup: {
+          from: 'users',
+          localField: 'enrollments.student',
+          foreignField: '_id',
+          as: 'studentDetails'
+        }
+      });
+
+      // Step 5: Unwind student details
+      pipeline.push({
+        $unwind: {
+          path: '$studentDetails',
+          preserveNullAndEmptyArrays: false
+        }
+      });
+
+      // Step 6: Match only students (role = 'student')
+      pipeline.push({
+        $match: {
+          'studentDetails.role': 'student',
+          'studentDetails.isActive': true
+        }
+      });
+
+      // Step 7: Apply search filter if provided
+      if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        pipeline.push({
+          $match: {
+            $or: [
+              { 'studentDetails.firstName': searchRegex },
+              { 'studentDetails.lastName': searchRegex },
+              { 'studentDetails.email': searchRegex },
+              { 'studentDetails.studentId': searchRegex }
+            ]
+          }
+        });
+      }
+
+      // Step 8: Group by student to combine course information
+      pipeline.push({
+        $group: {
+          _id: '$studentDetails._id',
+          student: { $first: '$studentDetails' },
+          courses: {
+            $push: {
+              _id: '$_id',
+              title: '$title',
+              code: '$code',
+              courseType: '$courseType',
+              creditHours: '$creditHours',
+              semester: '$semester',
+              year: '$year',
+              currentEnrollment: '$currentEnrollment',
+              maxStudents: '$maxStudents'
+            }
+          },
+          enrollmentInfo: { $first: '$enrollments' }
+        }
+      });
+
+      // Step 9: Add computed fields
+      pipeline.push({
+        $addFields: {
+          totalCredits: {
+            $sum: '$courses.creditHours'
+          },
+          courseCount: {
+            $size: '$courses'
+          },
+          enrollmentStatus: '$enrollmentInfo.status',
+          enrollmentType: '$enrollmentInfo.enrollmentType',
+          gpa: '$enrollmentInfo.gpa',
+          cgpa: '$enrollmentInfo.cgpa'
+        }
+      });
+
+      // Step 10: Project final structure
+      pipeline.push({
+        $project: {
+          _id: '$student._id',
+          firstName: '$student.firstName',
+          lastName: '$student.lastName',
+          email: '$student.email',
+          studentId: '$student.studentId',
+          department: '$student.department',
+          phone: '$student.phone',
+          avatar: '$student.avatar',
+          courses: 1,
+          totalCredits: 1,
+          courseCount: 1,
+          enrollmentStatus: 1,
+          enrollmentType: 1,
+          gpa: 1,
+          cgpa: 1
+        }
+      });
+
+      // Step 11: Sort results
+      const sortOrderNum = sortOrder === 'desc' ? -1 : 1;
+      pipeline.push({
+        $sort: { [sortBy]: sortOrderNum }
+      });
+
+      // Step 12: Get total count for pagination
+      const countPipeline = [...pipeline, { $count: 'total' }];
+      const countResult = await Course.aggregate(countPipeline);
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+
+      // Step 13: Apply pagination
+      pipeline.push(
+        { $skip: (page - 1) * limit },
+        { $limit: limit }
+      );
+
+      // Execute aggregation
+      const students = await Course.aggregate(pipeline);
+
+      // Calculate summary statistics
+      const totalStudents = total;
+      const facultyCourses = await Course.find({ 
+        faculty: facultyId, 
+        status: 'active' 
+      }).select('_id');
+      const totalCourses = facultyCourses.length;
+      const averageStudentsPerCourse = totalCourses > 0 ? (totalStudents / totalCourses).toFixed(2) : 0;
+
+      return {
+        students,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        },
+        summary: {
+          totalStudents,
+          totalCourses,
+          averageStudentsPerCourse: parseFloat(averageStudentsPerCourse),
+          faculty: {
+            _id: faculty._id,
+            firstName: faculty.firstName,
+            lastName: faculty.lastName,
+            email: faculty.email,
+            facultyId: faculty.facultyId,
+            department: faculty.department
+          }
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting faculty students aggregated:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get courses by department
    * @param {string} department - Department name
    * @returns {Promise<Array>} Courses in department

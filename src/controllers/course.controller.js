@@ -335,6 +335,39 @@ class CourseController {
   }
 
   /**
+   * Get students by faculty using aggregation (new efficient method)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async getFacultyStudentsAggregated(req, res) {
+    try {
+      const { facultyId } = req.params;
+      const options = {
+        page: parseInt(req.query.page) || 1,
+        limit: parseInt(req.query.limit) || 10,
+        sortBy: req.query.sortBy || 'firstName',
+        sortOrder: req.query.sortOrder || 'asc',
+        courseId: req.query.courseId,
+        search: req.query.search,
+        status: req.query.status || 'active'
+      };
+
+      const result = await courseService.getFacultyStudentsAggregated(facultyId, options);
+
+      return ResponseHandler.success(res, 200, 'Faculty students data retrieved successfully', result.students, {
+        pagination: result.pagination,
+        summary: result.summary
+      });
+    } catch (error) {
+      logger.error('Get faculty students aggregated error:', error);
+      if (error.message === 'Faculty not found or invalid faculty ID') {
+        return ResponseHandler.notFound(res, 'Faculty not found or invalid faculty ID');
+      }
+      return ResponseHandler.error(res, 500, 'Failed to retrieve faculty students data');
+    }
+  }
+
+  /**
    * Get courses by department
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object
