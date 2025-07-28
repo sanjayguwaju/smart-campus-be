@@ -1,6 +1,7 @@
 const Course = require('../models/course.model');
 const User = require('../models/user.model');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose'); // Added for getStudentsByFaculty
 
 /**
  * Course Service Class
@@ -450,19 +451,245 @@ class CourseService {
   }
 
   /**
-   * Get courses by faculty
+   * Get courses by faculty with search, pagination and total count
    * @param {string} facultyId - Faculty ID
-   * @returns {Promise<Array>} Courses taught by faculty
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} Courses with pagination info
    */
-  async getCoursesByFaculty(facultyId) {
+  async getCoursesByFaculty(facultyId, options = {}) {
     try {
-      const courses = await Course.findByFaculty(facultyId)
+      const { 
+        page = 1, 
+        limit = 10, 
+        sortBy = 'code', 
+        sortOrder = 'asc',
+        search = '',
+        status = 'active'
+      } = options;
+
+      // Build query
+      const query = { 
+        faculty: facultyId,
+        status: status
+      };
+
+      // Add search filter
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { code: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      // Build sort object
+      const sort = {};
+      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
+      // Calculate skip value for pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      // Get total count
+      const total = await Course.countDocuments(query);
+
+      // Get courses with pagination
+      const courses = await Course.find(query)
+        .populate('faculty', 'firstName lastName email department')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      // Calculate pagination info
+      const pages = Math.ceil(total / parseInt(limit));
+
+      return {
+        courses,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting courses by faculty:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get courses by instructor
+   * @param {string} instructorId - Instructor ID
+   * @returns {Promise<Array>} Courses taught by instructor
+   */
+  async getCoursesByInstructor(instructorId) {
+    try {
+      const courses = await Course.find({ faculty: instructorId })
         .populate('faculty', 'firstName lastName email department')
         .populate('students', 'firstName lastName email studentId');
 
       return courses;
     } catch (error) {
-      logger.error('Error getting courses by faculty:', error);
+      logger.error('Error getting courses by instructor:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all students enrolled in faculty's courses
+   * @param {string} facultyId - Faculty ID
+   * @param {Object} options - Query options
+   * @returns {Promise<Object>} Students with course information
+   */
+  async getStudentsByFaculty(facultyId, options = {}) {
+    try {
+      const { 
+        page = 1, 
+        limit = 10, 
+        sortBy = 'firstName', 
+        sortOrder = 'asc',
+        courseId,
+        search,
+        status = 'active'
+      } = options;
+
+      // Get all courses taught by the faculty
+      const facultyCourses = await Course.find({ 
+        faculty: facultyId, 
+        status: 'active' 
+      }).select('_id title code');
+
+      if (facultyCourses.length === 0) {
+        return {
+          students: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          },
+          summary: {
+            totalStudents: 0,
+            totalCourses: 0,
+            averageStudentsPerCourse: 0
+          }
+        };
+      }
+
+      const courseIds = facultyCourses.map(course => course._id);
+
+      // Build enrollment query
+      const enrollmentQuery = {
+        courses: { $in: courseIds },
+        status: status
+      };
+
+      // Add course filter if specified
+      if (courseId) {
+        enrollmentQuery.courses = courseId;
+      }
+
+      // Get enrollments with populated student and course data
+      const enrollments = await mongoose.model('Enrollment')
+        .find(enrollmentQuery)
+        .populate('student', 'firstName lastName email studentId department')
+        .populate('courses', 'title code faculty')
+        .lean();
+
+      // Process enrollments to get unique students with their course information
+      const studentMap = new Map();
+
+      enrollments.forEach(enrollment => {
+        const studentId = enrollment.student._id.toString();
+        
+        if (!studentMap.has(studentId)) {
+          studentMap.set(studentId, {
+            _id: enrollment.student._id,
+            firstName: enrollment.student.firstName,
+            lastName: enrollment.student.lastName,
+            email: enrollment.student.email,
+            studentId: enrollment.student.studentId,
+            department: enrollment.student.department,
+            courses: [],
+            totalCredits: enrollment.totalCredits || 0,
+            gpa: enrollment.gpa || 0.0,
+            enrollmentStatus: enrollment.status,
+            enrollmentType: enrollment.enrollmentType
+          });
+        }
+
+        // Add course information for this student
+        enrollment.courses.forEach(course => {
+          if (course.faculty.toString() === facultyId) {
+            const existingCourse = studentMap.get(studentId).courses.find(c => c._id.toString() === course._id.toString());
+            if (!existingCourse) {
+              studentMap.get(studentId).courses.push({
+                _id: course._id,
+                title: course.title,
+                code: course.code
+              });
+            }
+          }
+        });
+      });
+
+      let students = Array.from(studentMap.values());
+
+      // Apply search filter
+      if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        students = students.filter(student => 
+          student.firstName.match(searchRegex) ||
+          student.lastName.match(searchRegex) ||
+          student.email.match(searchRegex) ||
+          student.studentId?.match(searchRegex)
+        );
+      }
+
+      // Apply sorting
+      students.sort((a, b) => {
+        let aValue = a[sortBy];
+        let bValue = b[sortBy];
+        
+        if (sortBy === 'firstName' || sortBy === 'lastName') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+        
+        if (sortOrder === 'desc') {
+          return bValue > aValue ? 1 : -1;
+        }
+        return aValue > bValue ? 1 : -1;
+      });
+
+      // Apply pagination
+      const total = students.length;
+      const pages = Math.ceil(total / limit);
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedStudents = students.slice(startIndex, endIndex);
+
+      // Calculate summary statistics
+      const totalStudents = total;
+      const totalCourses = facultyCourses.length;
+      const averageStudentsPerCourse = totalCourses > 0 ? (totalStudents / totalCourses).toFixed(2) : 0;
+
+      return {
+        students: paginatedStudents,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages
+        },
+        summary: {
+          totalStudents,
+          totalCourses,
+          averageStudentsPerCourse: parseFloat(averageStudentsPerCourse)
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting students by faculty:', error);
       throw error;
     }
   }

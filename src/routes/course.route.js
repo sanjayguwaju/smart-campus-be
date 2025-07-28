@@ -488,6 +488,177 @@ router.get('/instructor/:instructorId', authenticate, courseController.getCourse
 
 /**
  * @swagger
+ * /api/v1/courses/faculty/{facultyId}:
+ *   get:
+ *     summary: Get courses assigned to a specific faculty
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: facultyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the faculty member
+ *     responses:
+ *       200:
+ *         description: Courses retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Course'
+ *       404:
+ *         description: Faculty not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/faculty/:facultyId', authenticate, courseController.getCoursesByFaculty);
+
+/**
+ * @swagger
+ * /api/v1/courses/faculty/{facultyId}/students:
+ *   get:
+ *     summary: Get all students enrolled in faculty's courses
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: facultyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the faculty member
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of students per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [firstName, lastName, email, studentId, gpa]
+ *           default: firstName
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *       - in: query
+ *         name: courseId
+ *         schema:
+ *           type: string
+ *         description: Filter by specific course ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search students by name, email, or student ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, completed, dropped, suspended, graduated]
+ *           default: active
+ *         description: Filter by enrollment status
+ *     responses:
+ *       200:
+ *         description: Students retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       firstName:
+ *                         type: string
+ *                       lastName:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       studentId:
+ *                         type: string
+ *                       department:
+ *                         type: object
+ *                       courses:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             _id:
+ *                               type: string
+ *                             title:
+ *                               type: string
+ *                             code:
+ *                               type: string
+ *                       totalCredits:
+ *                         type: number
+ *                       gpa:
+ *                         type: number
+ *                       enrollmentStatus:
+ *                         type: string
+ *                       enrollmentType:
+ *                         type: string
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     totalStudents:
+ *                       type: integer
+ *                     totalCourses:
+ *                       type: integer
+ *                     averageStudentsPerCourse:
+ *                       type: number
+ *       404:
+ *         description: Faculty not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/faculty/:facultyId/students', authenticate, courseController.getStudentsByFaculty);
+
+/**
+ * @swagger
  * /api/v1/courses/department/{department}:
  *   get:
  *     summary: Get courses by department
