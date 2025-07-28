@@ -204,6 +204,17 @@ router.post(
 );
 
 /**
+ * Create assignment for faculty-assigned courses
+ */
+router.post(
+  '/faculty-course',
+  authenticate,
+  authorize(['faculty']),
+  validateAssignmentCreation,
+  assignmentController.createAssignmentForFacultyCourse
+);
+
+/**
  * @swagger
  * /api/v1/assignments:
  *   get:
@@ -1202,5 +1213,7 @@ router.get(
   validateAssignmentQuery,
   assignmentController.getAssignmentsByTags
 );
+
+
 
 module.exports = router; 

@@ -21,6 +21,23 @@ class AssignmentController {
   }
 
   /**
+   * Create assignment for faculty-assigned courses
+   */
+  async createAssignmentForFacultyCourse(req, res) {
+    try {
+      const assignmentData = req.body;
+      const facultyId = req.user._id;
+
+      const assignment = await assignmentService.createAssignmentForFacultyCourse(assignmentData, facultyId);
+
+      return ResponseHandler.created(res, 'Assignment created successfully for your assigned course', assignment);
+    } catch (error) {
+      logger.error('Error in createAssignmentForFacultyCourse controller:', error);
+      return ResponseHandler.error(res, error.status || 500, error.message);
+    }
+  }
+
+  /**
    * Get assignments with filtering and pagination
    */
   async getAssignments(req, res) {

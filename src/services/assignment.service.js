@@ -68,6 +68,49 @@ class AssignmentService {
   }
 
   /**
+   * Create assignment for faculty-assigned courses only
+   */
+  async createAssignmentForFacultyCourse(assignmentData, facultyId) {
+    try {
+      // Validate that course exists
+      const course = await Course.findById(assignmentData.course);
+      if (!course) {
+        throw createError(404, 'Course not found');
+      }
+
+      // Verify that the faculty is assigned to this course
+      if (course.faculty.toString() !== facultyId.toString()) {
+        throw createError(403, 'You are not authorized to create assignments for this course. Only the assigned faculty can create assignments.');
+      }
+
+      // Set faculty to the authenticated faculty member
+      assignmentData.faculty = facultyId;
+
+      // Validate grading criteria points match total points
+      if (assignmentData.gradingCriteria && assignmentData.gradingCriteria.length > 0) {
+        const criteriaPoints = assignmentData.gradingCriteria.reduce((sum, criteria) => sum + criteria.maxPoints, 0);
+        if (criteriaPoints !== assignmentData.totalPoints) {
+          throw createError(400, 'Total points must match the sum of grading criteria points');
+        }
+      }
+
+      const assignment = new Assignment({
+        ...assignmentData,
+        createdBy: facultyId,
+        lastModifiedBy: facultyId
+      });
+
+      await assignment.save();
+      
+      logger.info(`Assignment created for faculty-assigned course: ${assignment._id} by faculty: ${facultyId}`);
+      return assignment;
+    } catch (error) {
+      logger.error('Error creating assignment for faculty course:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get assignments with filtering, pagination, and search
    */
   async getAssignments(query, user) {
