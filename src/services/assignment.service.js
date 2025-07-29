@@ -794,6 +794,98 @@ class AssignmentService {
       throw error;
     }
   }
+
+  /**
+   * Update assignment by faculty ID
+   */
+  async updateAssignmentByFaculty(facultyId, assignmentId, updateData, user) {
+    try {
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot update assignments');
+      }
+
+      if (user.role === 'faculty' && user._id.toString() !== facultyId) {
+        throw createError(403, 'Faculty can only update their own assignments');
+      }
+
+      const assignment = await Assignment.findById(assignmentId);
+      if (!assignment) {
+        throw createError(404, 'Assignment not found');
+      }
+
+      // Verify the assignment belongs to the specified faculty
+      if (assignment.faculty.toString() !== facultyId) {
+        throw createError(403, 'Assignment does not belong to the specified faculty');
+      }
+
+      // Validate grading criteria points match total points if both are provided
+      if (updateData.gradingCriteria && updateData.totalPoints) {
+        const criteriaPoints = updateData.gradingCriteria.reduce((sum, criteria) => sum + criteria.maxPoints, 0);
+        if (criteriaPoints !== updateData.totalPoints) {
+          throw createError(400, 'Total points must match the sum of grading criteria points');
+        }
+      }
+
+      // Update assignment
+      Object.assign(assignment, updateData, { lastModifiedBy: user._id });
+      await assignment.save();
+
+      // Populate course information for response
+      await assignment.populate('course', 'name code');
+
+      logger.info(`Assignment updated by faculty: ${assignmentId} by user: ${user._id}`);
+      return assignment;
+    } catch (error) {
+      logger.error('Error updating assignment by faculty:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete assignment by faculty ID
+   */
+  async deleteAssignmentByFaculty(facultyId, assignmentId, user) {
+    try {
+      // Check permissions
+      if (user.role === 'student') {
+        throw createError(403, 'Students cannot delete assignments');
+      }
+
+      if (user.role === 'faculty' && user._id.toString() !== facultyId) {
+        throw createError(403, 'Faculty can only delete their own assignments');
+      }
+
+      const assignment = await Assignment.findById(assignmentId);
+      if (!assignment) {
+        throw createError(404, 'Assignment not found');
+      }
+
+      // Verify the assignment belongs to the specified faculty
+      if (assignment.faculty.toString() !== facultyId) {
+        throw createError(403, 'Assignment does not belong to the specified faculty');
+      }
+
+      // Delete associated files from Cloudinary
+      if (assignment.files && assignment.files.length > 0) {
+        for (const file of assignment.files) {
+          try {
+            await deleteImage(file.fileUrl);
+          } catch (fileError) {
+            logger.warn(`Failed to delete file from Cloudinary: ${file.fileUrl}`, fileError);
+          }
+        }
+      }
+
+      await Assignment.findByIdAndDelete(assignmentId);
+
+      logger.info(`Assignment deleted by faculty: ${assignmentId} by user: ${user._id}`);
+      return { message: 'Assignment deleted successfully' };
+    } catch (error) {
+      logger.error('Error deleting assignment by faculty:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new AssignmentService(); 

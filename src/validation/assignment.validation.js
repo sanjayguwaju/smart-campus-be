@@ -238,6 +238,21 @@ const validateAssignmentId = [
 ];
 
 /**
+ * Faculty assignment ID validation
+ */
+const validateFacultyAssignmentId = [
+  param('facultyId')
+    .isMongoId()
+    .withMessage('Faculty ID must be a valid MongoDB ObjectId'),
+  
+  param('assignmentId')
+    .isMongoId()
+    .withMessage('Assignment ID must be a valid MongoDB ObjectId'),
+  
+  handleValidationErrors
+];
+
+/**
  * Assignment query validation
  */
 const validateAssignmentQuery = [
@@ -865,6 +880,7 @@ module.exports = {
   validateAssignmentCreation,
   validateAssignmentUpdate,
   validateAssignmentId,
+  validateFacultyAssignmentId,
   validateAssignmentQuery,
   validateFileUpload,
   validateStatusUpdate,

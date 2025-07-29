@@ -6,6 +6,7 @@ const {
   validateAssignmentCreation,
   validateAssignmentUpdate,
   validateAssignmentId,
+  validateFacultyAssignmentId,
   validateAssignmentQuery,
   validateFileUpload,
   validateStatusUpdate,
@@ -1278,6 +1279,187 @@ router.get(
   assignmentController.getAssignmentsByTags
 );
 
+/**
+ * @swagger
+ * /api/v1/assignments/faculty/{facultyId}/{assignmentId}:
+ *   put:
+ *     summary: Update assignment by faculty ID
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: facultyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Faculty ID
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Assignment ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 maxLength: 200
+ *               description:
+ *                 type: string
+ *                 maxLength: 2000
+ *               assignmentType:
+ *                 type: string
+ *                 enum: [Homework, Project, Quiz, Exam, Lab, Presentation, Essay, Research]
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *               extendedDueDate:
+ *                 type: string
+ *                 format: date-time
+ *               totalPoints:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 1000
+ *               difficulty:
+ *                 type: string
+ *                 enum: [Easy, Medium, Hard, Expert]
+ *               status:
+ *                 type: string
+ *                 enum: [draft, published, submission_closed, grading, completed, archived]
+ *               requirements:
+ *                 type: object
+ *                 properties:
+ *                   maxFileSize:
+ *                     type: number
+ *                     minimum: 1
+ *                   allowedFileTypes:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                   maxSubmissions:
+ *                     type: number
+ *                     minimum: 1
+ *                   allowLateSubmission:
+ *                     type: boolean
+ *                   latePenalty:
+ *                     type: number
+ *                     minimum: 0
+ *                     maximum: 100
+ *               gradingCriteria:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     criterion:
+ *                       type: string
+ *                       maxLength: 100
+ *                     maxPoints:
+ *                       type: number
+ *                       minimum: 0
+ *                     description:
+ *                       type: string
+ *                       maxLength: 500
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   maxLength: 50
+ *               estimatedTime:
+ *                 type: number
+ *                 minimum: 0.5
+ *                 maximum: 100
+ *     responses:
+ *       200:
+ *         description: Assignment updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 data:
+ *                   $ref: '#/components/schemas/Assignment'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Assignment not found
+ */
+router.put(
+  '/faculty/:facultyId/:assignmentId',
+  authenticate,
+  authorize(['admin', 'faculty']),
+  validateFacultyAssignmentId,
+  validateAssignmentUpdate,
+  assignmentController.updateAssignmentByFaculty
+);
 
+/**
+ * @swagger
+ * /api/v1/assignments/faculty/{facultyId}/{assignmentId}:
+ *   delete:
+ *     summary: Delete assignment by faculty ID
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: facultyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Faculty ID
+ *       - in: path
+ *         name: assignmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Assignment ID
+ *     responses:
+ *       200:
+ *         description: Assignment deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Assignment not found
+ */
+router.delete(
+  '/faculty/:facultyId/:assignmentId',
+  authenticate,
+  authorize(['admin', 'faculty']),
+  validateFacultyAssignmentId,
+  assignmentController.deleteAssignmentByFaculty
+);
 
 module.exports = router; 

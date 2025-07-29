@@ -422,6 +422,41 @@ class AssignmentController {
       return ResponseHandler.error(res, error.status || 500, error.message);
     }
   }
+
+  /**
+   * Update assignment by faculty ID
+   */
+  async updateAssignmentByFaculty(req, res) {
+    try {
+      const { facultyId, assignmentId } = req.params;
+      const updateData = req.body;
+      const user = req.user;
+
+      const assignment = await assignmentService.updateAssignmentByFaculty(facultyId, assignmentId, updateData, user);
+
+      return ResponseHandler.success(res, 200, 'Assignment updated successfully', assignment);
+    } catch (error) {
+      logger.error('Error in updateAssignmentByFaculty controller:', error);
+      return ResponseHandler.error(res, error.status || 500, error.message);
+    }
+  }
+
+  /**
+   * Delete assignment by faculty ID
+   */
+  async deleteAssignmentByFaculty(req, res) {
+    try {
+      const { facultyId, assignmentId } = req.params;
+      const user = req.user;
+
+      const result = await assignmentService.deleteAssignmentByFaculty(facultyId, assignmentId, user);
+
+      return ResponseHandler.success(res, 200, result.message);
+    } catch (error) {
+      logger.error('Error in deleteAssignmentByFaculty controller:', error);
+      return ResponseHandler.error(res, error.status || 500, error.message);
+    }
+  }
 }
 
 module.exports = new AssignmentController(); 
