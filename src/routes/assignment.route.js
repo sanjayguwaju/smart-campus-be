@@ -672,7 +672,7 @@ router.get(
  * @swagger
  * /api/v1/assignments/faculty/{facultyId}:
  *   get:
- *     summary: Get assignments by faculty
+ *     summary: Get assignments by faculty with search and pagination
  *     tags: [Assignments]
  *     security:
  *       - bearerAuth: []
@@ -682,8 +682,58 @@ router.get(
  *         required: true
  *         schema:
  *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'
  *         description: Faculty ID
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for assignment title or description
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, published, completed, submission_closed]
+ *         description: Filter by assignment status
+ *       - in: query
+ *         name: assignmentType
+ *         schema:
+ *           type: string
+ *         description: Filter by assignment type
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *           enum: [easy, medium, hard]
+ *         description: Filter by difficulty level
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [title, dueDate, createdAt, status]
+ *           default: dueDate
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
  *     responses:
  *       200:
  *         description: Faculty assignments retrieved successfully
@@ -696,10 +746,24 @@ router.get(
  *                   type: boolean
  *                 message:
  *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
  *                 data:
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Assignment'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
  *       400:
  *         description: Validation error
  *       401:

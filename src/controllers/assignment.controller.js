@@ -192,10 +192,43 @@ class AssignmentController {
     try {
       const { facultyId } = req.params;
       const user = req.user;
+      
+      // Extract query parameters for search and pagination
+      const {
+        search,
+        status,
+        assignmentType,
+        difficulty,
+        page = 1,
+        limit = 10,
+        sortBy = 'dueDate',
+        sortOrder = 'asc'
+      } = req.query;
 
-      const assignments = await assignmentService.getAssignmentsByFaculty(facultyId, user);
+      // Create query object
+      const query = {
+        facultyId,
+        search,
+        status,
+        assignmentType,
+        difficulty,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          sortBy,
+          sortOrder
+        }
+      };
 
-      return ResponseHandler.success(res, 200, 'Faculty assignments retrieved successfully', assignments);
+      const result = await assignmentService.getAssignmentsByFaculty(query, user);
+
+      return ResponseHandler.success(
+        res, 
+        200, 
+        'Faculty assignments retrieved successfully', 
+        result.assignments,
+        result.pagination
+      );
     } catch (error) {
       logger.error('Error in getAssignmentsByFaculty controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);

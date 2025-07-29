@@ -189,7 +189,7 @@ class AssignmentService {
       const skip = (page - 1) * limit;
       const assignments = await Assignment.find(filter)
         .populate('course', 'name code')
-        .populate('faculty', 'firstName lastName email')
+        .populate('faculty', 'firstName lastName')
         .populate('createdBy', 'firstName lastName')
         .sort(sort)
         .skip(skip)
@@ -485,10 +485,12 @@ class AssignmentService {
   }
 
   /**
-   * Get assignments by faculty
+   * Get assignments by faculty with search and pagination
    */
-  async getAssignmentsByFaculty(facultyId, user) {
+  async getAssignmentsByFaculty(query, user) {
     try {
+      const { facultyId, search, status, assignmentType, difficulty, pagination } = query;
+      
       // Check permissions
       if (user.role === 'student') {
         throw createError(403, 'Students cannot access faculty assignments');
@@ -498,12 +500,66 @@ class AssignmentService {
         throw createError(403, 'Faculty can only access their own assignments');
       }
 
-      const assignments = await Assignment.find({ faculty: facultyId })
+      // Build filter object
+      const filter = { faculty: facultyId };
+
+      // Add search filter
+      if (search) {
+        filter.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      // Add status filter
+      if (status) {
+        filter.status = status;
+      }
+
+      // Add assignment type filter
+      if (assignmentType) {
+        filter.assignmentType = assignmentType;
+      }
+
+      // Add difficulty filter
+      if (difficulty) {
+        filter.difficulty = difficulty;
+      }
+
+      // Get total count for pagination
+      const total = await Assignment.countDocuments(filter);
+
+      // Calculate pagination
+      const { page = 1, limit = 10, sortBy = 'dueDate', sortOrder = 'asc' } = pagination;
+      const skip = (page - 1) * limit;
+      const pages = Math.ceil(total / limit);
+
+      // Build sort object
+      const sort = {};
+      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+      
+      // Add _id to sort for consistent pagination
+      if (sortBy !== '_id') {
+        sort._id = sortOrder === 'desc' ? -1 : 1;
+      }
+
+      // Execute query with pagination
+      const assignments = await Assignment.find(filter)
         .populate('course', 'name code')
-        .sort({ dueDate: 1 })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
         .lean();
 
-      return assignments;
+      return {
+        assignments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages
+        }
+      };
     } catch (error) {
       logger.error('Error getting assignments by faculty:', error);
       throw error;
