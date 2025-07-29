@@ -1479,7 +1479,7 @@ class EventController {
     try {
       const { eventId } = req.params;
       const { isPublished } = req.body;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       // Validate isPublished is a boolean
       if (typeof isPublished !== 'boolean') {

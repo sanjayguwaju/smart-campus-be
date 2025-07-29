@@ -1160,14 +1160,21 @@ class EventService {
         throw createError(404, 'Event not found');
       }
 
-      // Check if user has permission (admin, faculty, or organizer)
-      const user = await User.findById(userId);
-      if (!user || !['admin', 'faculty'].includes(user.role)) {
-        // Check if user is the organizer or creator
-        if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
-          throw createError(403, 'You do not have permission to publish/unpublish this event');
-        }
+          // Check if user has permission (admin, faculty, or organizer)
+    const user = await User.findById(userId);
+    if (!user) {
+      throw createError(403, 'User not found');
+    }
+
+    // Admin and faculty can publish/unpublish any event
+    if (['admin', 'faculty'].includes(user.role)) {
+      // Admin and faculty have full permission - no additional checks needed
+    } else {
+      // For other users, check if they are the organizer or creator
+      if (event.organizer.toString() !== userId && event.createdBy.toString() !== userId) {
+        throw createError(403, 'You do not have permission to publish/unpublish this event');
       }
+    }
 
       // Update the isPublished field
       event.isPublished = isPublished;
