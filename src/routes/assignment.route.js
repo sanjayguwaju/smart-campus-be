@@ -1077,7 +1077,7 @@ router.get(
  *         description: Forbidden - only students can access
  */
 router.get(
-  'student/:studentId/my-courses-assignments',
+  '/student/:studentId/my-courses-assignments',
   authenticate,
   authorize(['student']),
   validateAssignmentQuery,

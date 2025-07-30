@@ -546,6 +546,7 @@ class AssignmentService {
       // Execute query with pagination
       const assignments = await Assignment.find(filter)
         .populate('course', 'name code')
+        .populate('faculty', 'firstName lastName email')
         .sort(sort)
         .skip(skip)
         .limit(limit)
