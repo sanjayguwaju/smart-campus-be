@@ -26,7 +26,7 @@ const createNotice = async (req, res) => {
 const getAllNotices = async (req, res) => {
   try {
     const result = await noticeService.getAllNotices({}, req.query);
-    return ResponseHandler.success(res, 200, 'Notices retrieved successfully', result.data.notices, result.data.pagination);
+    return ResponseHandler.success(res, 200, 'Notices retrieved successfully', result.data);
   } catch (error) {
     logger.error("Error in getAllNotices controller:", error);
     return ResponseHandler.error(res, 500, 'Error retrieving notices');
