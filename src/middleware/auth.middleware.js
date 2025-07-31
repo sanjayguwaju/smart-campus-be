@@ -21,6 +21,8 @@ const authenticate = async (req, res, next) => {
       return ResponseHandler.unauthorized(res, 'Invalid or inactive user');
     }
 
+    // Add id field for compatibility with controllers
+    user.id = user._id;
     req.user = user;
     next();
   } catch (error) {

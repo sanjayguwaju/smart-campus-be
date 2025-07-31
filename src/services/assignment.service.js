@@ -141,8 +141,29 @@ class AssignmentService {
         filter.status = 'published';
         filter.isVisible = true;
         
-        // Note: Student enrollment should be checked through the enrollment model
-        // For now, students can see all published assignments
+        // Get student's enrolled courses
+        const Enrollment = require('../models/enrollment.model');
+        const enrollment = await Enrollment.findOne({ 
+          student: user._id, 
+          status: 'active' 
+        }).populate('courses');
+        
+        if (enrollment && enrollment.courses.length > 0) {
+          const enrolledCourseIds = enrollment.courses.map(course => course._id);
+          filter.course = { $in: enrolledCourseIds };
+        } else {
+          // If no enrollment found, return empty result
+          return {
+            assignments: [],
+            data: [],
+            pagination: {
+              page: parseInt(page),
+              limit: parseInt(limit),
+              total: 0,
+              pages: 0
+            }
+          };
+        }
       } else if (user.role === 'faculty') {
         // Faculty can see their own assignments and published assignments
         filter.$or = [

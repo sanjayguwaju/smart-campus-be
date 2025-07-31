@@ -24,6 +24,7 @@ const departmentRoutes = require('./src/routes/department.route');
 const enrollmentRoutes = require('./src/routes/enrollment.route');
 const assignmentRoutes = require('./src/routes/assignment.route');
 const submissionRoutes = require('./src/routes/submission.route');
+const courseGradeRoutes = require('./src/routes/courseGrade.route');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -137,6 +138,7 @@ app.use(`/api/${API_VERSION}/departments`, departmentRoutes);
 app.use(`/api/${API_VERSION}/enrollments`, enrollmentRoutes);
 app.use(`/api/${API_VERSION}/assignments`, assignmentRoutes);
 app.use(`/api/${API_VERSION}/submissions`, submissionRoutes);
+app.use(`/api/${API_VERSION}/course-grades`, courseGradeRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
