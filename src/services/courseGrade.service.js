@@ -102,6 +102,31 @@ class CourseGradeService {
   }
 
   /**
+   * Get course grades for student
+   */
+  async getStudentGrades(studentId, filters = {}) {
+    try {
+      const query = { student: studentId };
+      
+      if (filters.semester) query.semester = filters.semester;
+      if (filters.academicYear) query.academicYear = filters.academicYear;
+      if (filters.course) query.course = filters.course;
+      if (filters.status) query.status = filters.status;
+
+      const grades = await CourseGrade.find(query)
+        .populate('course', 'name code creditHours')
+        .populate('faculty', 'firstName lastName')
+        .sort({ submittedAt: -1 });
+
+      logger.info(`Course grades retrieved for student: ${studentId}`);
+      return grades;
+    } catch (error) {
+      logger.error('Error getting student grades:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get course grades by course
    */
   async getCourseGradesByCourse(courseId, facultyId, filters = {}) {

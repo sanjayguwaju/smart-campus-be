@@ -413,6 +413,50 @@ router.get('/course/:courseId/statistics',
 
 /**
  * @swagger
+ * /api/v1/course-grades/student:
+ *   get:
+ *     summary: Get course grades for the authenticated student
+ *     tags: [Course Grades]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: semester
+ *         schema:
+ *           type: number
+ *         description: Semester filter
+ *       - in: query
+ *         name: academicYear
+ *         schema:
+ *           type: string
+ *         description: Academic year filter
+ *       - in: query
+ *         name: course
+ *         schema:
+ *           type: string
+ *         description: Course ID filter
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, submitted, approved, final]
+ *         description: Grade status filter
+ *     responses:
+ *       200:
+ *         description: Student grades retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - only students can access
+ */
+router.get('/student', 
+  authenticate, 
+  authorize(['student']), 
+  courseGradeController.getStudentGrades
+);
+
+/**
+ * @swagger
  * /api/v1/course-grades/{gradeId}:
  *   delete:
  *     summary: Delete course grade

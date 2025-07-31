@@ -41,6 +41,23 @@ class CourseGradeController {
   }
 
   /**
+   * Get course grades for student
+   */
+  async getStudentGrades(req, res) {
+    try {
+      const studentId = req.user._id;
+      const filters = req.query;
+
+      const grades = await courseGradeService.getStudentGrades(studentId, filters);
+
+      return ResponseHandler.success(res, 200, 'Student grades retrieved successfully', grades);
+    } catch (error) {
+      logger.error('Get student grades error:', error);
+      return ResponseHandler.error(res, error.status || 400, error.message);
+    }
+  }
+
+  /**
    * Get course grades by course
    */
   async getCourseGradesByCourse(req, res) {
