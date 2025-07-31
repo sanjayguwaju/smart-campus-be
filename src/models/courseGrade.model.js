@@ -57,7 +57,6 @@ const courseGradeSchema = new mongoose.Schema({
   // Quality points (gradePoints * credits)
   qualityPoints: {
     type: Number,
-    required: true,
     min: [0, 'Quality points cannot be negative']
   },
   // Grading method
@@ -182,18 +181,29 @@ courseGradeSchema.index({ submittedAt: -1 });
 
 // Pre-save middleware
 courseGradeSchema.pre('save', function(next) {
-  // Calculate quality points
-  this.qualityPoints = this.gradePoints * this.credits;
   
-  // Calculate grade points from letter grade if not provided
+  // Ensure gradePoints is set from finalGrade if not provided
   if (!this.gradePoints && this.finalGrade) {
     this.gradePoints = this.getGradePoints(this.finalGrade);
+  }
+  
+  // Ensure gradePoints is set (default to 0 if not provided)
+  if (!this.gradePoints) {
+    this.gradePoints = 0;
   }
   
   // Calculate numerical grade from grade points if not provided
   if (!this.numericalGrade && this.gradePoints) {
     this.numericalGrade = this.getNumericalGrade(this.gradePoints);
   }
+  
+  // Ensure credits is set (default to 3 if not provided)
+  if (!this.credits) {
+    this.credits = 3;
+  }
+  
+  // Calculate quality points
+  this.qualityPoints = this.gradePoints * this.credits;
   
   next();
 });

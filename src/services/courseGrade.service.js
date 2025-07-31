@@ -25,6 +25,11 @@ class CourseGradeService {
         throw createError(403, 'You are not authorized to grade this course');
       }
 
+      // Ensure credits is provided or use course credit hours
+      if (!gradeData.credits && !course.creditHours) {
+        throw createError(400, 'Credits are required for course grade');
+      }
+
       // Check if grade already exists for this student and course
       const existingGrade = await CourseGrade.findOne({
         student: gradeData.student,
@@ -43,11 +48,18 @@ class CourseGradeService {
       // Calculate numerical grade
       const numericalGrade = CourseGrade.getNumericalGrade(gradePoints);
 
+      // Ensure credits is set - use course credit hours if not provided
+      const credits = gradeData.credits || course.creditHours;
+
+      const qualityPoints = gradePoints * credits;
+      
       const courseGrade = new CourseGrade({
         ...gradeData,
         faculty: facultyId,
         gradePoints,
         numericalGrade,
+        credits,
+        qualityPoints,
         submittedBy: facultyId
       });
 
@@ -152,6 +164,11 @@ class CourseGradeService {
       if (updateData.finalGrade && updateData.finalGrade !== previousGrade) {
         courseGrade.gradePoints = CourseGrade.getGradePoints(updateData.finalGrade);
         courseGrade.numericalGrade = CourseGrade.getNumericalGrade(courseGrade.gradePoints);
+      }
+
+      // Ensure credits is set if provided in update
+      if (updateData.credits) {
+        courseGrade.credits = updateData.credits;
       }
 
       await courseGrade.save();
@@ -343,7 +360,7 @@ class CourseGradeService {
               finalGrade: finalLetterGrade,
               numericalGrade: finalNumericalGrade,
               gradePoints,
-              credits: course.creditHours,
+              credits: course.creditHours || 3, // Default to 3 credits if not specified
               assignmentGrades: studentGrades,
               status: 'draft'
             };

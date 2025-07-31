@@ -46,8 +46,16 @@ const validateCourseGrade = [
     .withMessage('Numerical grade must be between 0 and 100'),
   
   body('credits')
+    .notEmpty()
+    .withMessage('Credits are required')
     .isFloat({ min: 1, max: 6 })
-    .withMessage('Credits must be between 1 and 6'),
+    .withMessage('Credits must be between 1 and 6')
+    .custom((value) => {
+      if (value <= 0) {
+        throw new Error('Credits must be greater than 0');
+      }
+      return true;
+    }),
   
   body('attendance')
     .optional()
