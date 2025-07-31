@@ -504,26 +504,40 @@ class CourseGradeService {
         throw createError(404, 'Course grade not found');
       }
 
-      // Verify faculty owns this grade
-      if (courseGrade.faculty.toString() !== facultyId.toString()) {
-        throw createError(403, 'You are not authorized to delete this grade');
+      // Check if faculty is assigned to the course (allows deletion for error correction)
+      const course = await Course.findById(courseGrade.course);
+      if (!course) {
+        throw createError(404, 'Course not found');
+      }
+
+      // Allow deletion if faculty owns the grade OR is assigned to the course
+      if (courseGrade.faculty.toString() !== facultyId.toString() && 
+          course.faculty.toString() !== facultyId.toString()) {
+        throw createError(403, 'You are not authorized to delete this grade. Only the grade creator or course faculty can delete grades.');
       }
 
       // Create history entry BEFORE deletion
+      const deletionReason = courseGrade.faculty.toString() === facultyId.toString() 
+        ? 'Individual grade deletion - students have their history'
+        : 'Grade deletion by course faculty for error correction';
+        
       await FacultyGradeHistory.createHistoryEntry(
         courseGrade,
         courseGrade.faculty,
         'deleted',
-        'Individual grade deletion - students have their history'
+        deletionReason
       );
 
       // Delete the grade
       await CourseGrade.findByIdAndDelete(gradeId);
 
-      logger.info(`Course grade deleted: ${gradeId} by faculty: ${facultyId}. Status was: ${courseGrade.status}. Added to faculty history.`);
+      const isOwnGrade = courseGrade.faculty.toString() === facultyId.toString();
+      const actionType = isOwnGrade ? 'own grade' : 'course grade for error correction';
+      
+      logger.info(`Course grade deleted: ${gradeId} by faculty: ${facultyId}. Status was: ${courseGrade.status}. Action: ${actionType}. Added to faculty history.`);
       return { 
         success: true, 
-        message: 'Grade deleted successfully and added to faculty history'
+        message: `Grade deleted successfully for ${actionType} and added to faculty history`
       };
     } catch (error) {
       logger.error('Error deleting course grade:', error);
