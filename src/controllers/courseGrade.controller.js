@@ -1,5 +1,5 @@
 const courseGradeService = require('../services/courseGrade.service');
-const ResponseHandler = require('../utils/responseHandler');
+const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 
 /**
