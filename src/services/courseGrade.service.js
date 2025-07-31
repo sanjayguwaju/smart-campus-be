@@ -1,4 +1,5 @@
 const CourseGrade = require('../models/courseGrade.model');
+const FacultyGradeHistory = require('../models/facultyGradeHistory.model');
 const Course = require('../models/course.model');
 const Assignment = require('../models/assignment.model');
 const Submission = require('../models/submission.model');
@@ -490,11 +491,15 @@ class CourseGradeService {
   }
 
   /**
-   * Delete course grade (only if draft)
+   * Delete course grade (any status - students have their history)
    */
   async deleteCourseGrade(gradeId, facultyId) {
     try {
-      const courseGrade = await CourseGrade.findById(gradeId);
+      const courseGrade = await CourseGrade.findById(gradeId)
+        .populate('student', 'firstName lastName studentId')
+        .populate('course', 'name code')
+        .populate('faculty', 'firstName lastName');
+        
       if (!courseGrade) {
         throw createError(404, 'Course grade not found');
       }
@@ -504,20 +509,29 @@ class CourseGradeService {
         throw createError(403, 'You are not authorized to delete this grade');
       }
 
-      // Only allow deletion of draft grades
-      if (courseGrade.status !== 'draft') {
-        throw createError(400, 'Cannot delete grade that is already submitted or finalized');
-      }
+      // Create history entry BEFORE deletion
+      await FacultyGradeHistory.createHistoryEntry(
+        courseGrade,
+        courseGrade.faculty,
+        'deleted',
+        'Individual grade deletion - students have their history'
+      );
 
+      // Delete the grade
       await CourseGrade.findByIdAndDelete(gradeId);
 
-      logger.info(`Course grade deleted: ${gradeId} by faculty: ${facultyId}`);
-      return { success: true, message: 'Grade deleted successfully' };
+      logger.info(`Course grade deleted: ${gradeId} by faculty: ${facultyId}. Status was: ${courseGrade.status}. Added to faculty history.`);
+      return { 
+        success: true, 
+        message: 'Grade deleted successfully and added to faculty history'
+      };
     } catch (error) {
       logger.error('Error deleting course grade:', error);
       throw error;
     }
   }
+
+
 }
 
 module.exports = new CourseGradeService(); 
