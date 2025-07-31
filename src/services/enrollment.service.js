@@ -188,11 +188,11 @@ class EnrollmentService {
       // Execute query
       const [enrollments, total] = await Promise.all([
         Enrollment.find(query)
-          .populate('student', 'firstName lastName email studentId')
+          .populate('student', 'firstName lastName name email studentId')
           .populate('program', 'name code')
           .populate('courses', 'name code creditHours')
-          .populate('advisor', 'firstName lastName email')
-          .populate('createdBy', 'firstName lastName email')
+          .populate('advisor', 'firstName lastName name email')
+          .populate('createdBy', 'firstName lastName name email')
           .sort(sort)
           .skip(skip)
           .limit(limit),
@@ -225,13 +225,13 @@ class EnrollmentService {
   async getEnrollmentById(enrollmentId) {
     try {
       const enrollment = await Enrollment.findById(enrollmentId)
-        .populate('student', 'name email studentId department')
+        .populate('student', 'firstName lastName name email studentId department')
         .populate('program', 'name code description')
         .populate('courses', 'name code creditHours description')
-        .populate('advisor', 'name email')
-        .populate('createdBy', 'name email')
-        .populate('lastModifiedBy', 'name email')
-        .populate('auditTrail.performedBy', 'name email');
+        .populate('advisor', 'firstName lastName name email')
+        .populate('createdBy', 'firstName lastName name email')
+        .populate('lastModifiedBy', 'firstName lastName name email')
+        .populate('auditTrail.performedBy', 'firstName lastName name email');
 
       if (!enrollment) {
         throw createError(404, 'Enrollment not found');
@@ -301,11 +301,11 @@ class EnrollmentService {
         data,
         { new: true, runValidators: true }
       )
-        .populate('student', 'name email studentId')
+        .populate('student', 'firstName lastName name email studentId')
         .populate('program', 'name code')
         .populate('courses', 'name code creditHours')
-        .populate('advisor', 'name email')
-        .populate('lastModifiedBy', 'name email');
+        .populate('advisor', 'firstName lastName name email')
+        .populate('lastModifiedBy', 'firstName lastName name email');
 
       // Add audit entry
       await updatedEnrollment.addAuditEntry('status_changed', lastModifiedBy, 'Enrollment updated');
