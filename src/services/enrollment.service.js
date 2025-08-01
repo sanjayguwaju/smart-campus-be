@@ -45,6 +45,21 @@ class EnrollmentService {
         throw createError(404, 'Student not found');
       }
 
+      // Check if the user has the role of 'student'
+      if (student.role !== 'student') {
+        throw createError(400, 'User must have the role of student to be enrolled');
+      }
+
+      // Check if student is already enrolled in any program
+      const existingStudentEnrollment = await Enrollment.findOne({
+        student: enrollmentData.student,
+        status: { $ne: 'withdrawn' } // Exclude withdrawn enrollments
+      });
+
+      if (existingStudentEnrollment) {
+        throw createError(409, 'Student is already enrolled in a program');
+      }
+
       // Check if program exists
       const program = await Program.findById(enrollmentData.program);
       if (!program) {
@@ -67,7 +82,7 @@ class EnrollmentService {
         }
       }
 
-      // Check for duplicate enrollment
+      // Check for duplicate enrollment in the same program, semester, and academic year
       const existingEnrollment = await Enrollment.findOne({
         student: enrollmentData.student,
         program: enrollmentData.program,

@@ -36,6 +36,102 @@ class UserService {
   }
 
   /**
+   * Create multiple users in bulk with auto-generated email and phone
+   * @param {Array} usersData - Array of user data objects
+   * @returns {Promise<Object>} Result with created and failed users
+   */
+  async createBulkUsers(usersData) {
+    try {
+      const created = [];
+      const failed = [];
+
+      for (const userData of usersData) {
+        try {
+          // Generate email and phone number
+          const generatedData = await this.generateUserCredentials(userData);
+          
+          // Create user with generated credentials
+          const user = new User(generatedData);
+          await user.save();
+
+          // Remove password from response
+          const userResponse = user.toObject();
+          delete userResponse.password;
+
+          created.push(userResponse);
+          logger.info(`Bulk user created: ${user.email}`);
+        } catch (error) {
+          logger.error(`Error creating bulk user: ${error.message}`);
+          failed.push({
+            userData,
+            error: error.message,
+            generatedEmail: error.message.includes('Unable to generate unique email') ? 'Failed to generate unique email' : undefined
+          });
+        }
+      }
+
+      return {
+        created,
+        failed,
+        summary: {
+          total: usersData.length,
+          created: created.length,
+          failed: failed.length
+        }
+      };
+    } catch (error) {
+      logger.error('Error in bulk user creation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate email and phone number for a user
+   * @param {Object} userData - User data with firstName, lastName, role
+   * @returns {Object} User data with generated email and phone
+   */
+  async generateUserCredentials(userData) {
+    const { firstName, lastName, role } = userData;
+    
+    // Generate base email: firstname.lastname@smartcampus.com
+    const baseEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`;
+    
+    // Find a unique email by adding a 3-digit number if needed
+    let email = `${baseEmail}@smartcampus.com`;
+    let counter = 1;
+    
+    while (counter <= 999) {
+      const existingUser = await User.findByEmail(email);
+      if (!existingUser) {
+        break;
+      }
+      
+      // Add 3-digit number to make it unique
+      const suffix = counter.toString().padStart(3, '0');
+      email = `${baseEmail}${suffix}@smartcampus.com`;
+      counter++;
+    }
+    
+    if (counter > 999) {
+      throw new Error('Unable to generate unique email after 999 attempts');
+    }
+    
+    // Generate phone number: 98 + 8 random digits
+    const phone = `98${Math.floor(Math.random() * 90000000) + 10000000}`;
+    
+    // Generate password: FirstName@123
+    const password = `${firstName}@123`;
+    
+    return {
+      ...userData,
+      email,
+      phone,
+      password,
+      isActive: true
+    };
+  }
+
+  /**
    * Authenticate user login
    * @param {string} email - User email
    * @param {string} password - User password

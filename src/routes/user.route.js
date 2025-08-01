@@ -7,7 +7,8 @@ const {
   validateUserUpdate,
   validateUserId,
   validateUserQuery,
-  validateAdminRegistration
+  validateAdminRegistration,
+  validateBulkUserCreation
 } = require('../validation/user.validation');
 
 /**
@@ -112,6 +113,81 @@ router.get('/:userId', authenticate, validateUserId, canAccessOwnResource('userI
  *         description: Validation error
  */
 router.post('/', authenticate, requireAdmin, validateUserRegistration, userController.createUser);
+
+/**
+ * @swagger
+ * /api/v1/users/bulk:
+ *   post:
+ *     summary: Create multiple users in bulk (Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - users
+ *             properties:
+ *               users:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - firstName
+ *                     - lastName
+ *                     - role
+ *                   properties:
+ *                     firstName:
+ *                       type: string
+ *                       description: User's first name
+ *                     lastName:
+ *                       type: string
+ *                       description: User's last name
+ *                     role:
+ *                       type: string
+ *                       enum: [admin, faculty, student]
+ *                       description: User's role
+ *                     department:
+ *                       type: string
+ *                       description: User's department (optional)
+ *                     studentId:
+ *                       type: string
+ *                       description: Student ID (optional, for students)
+ *                     facultyId:
+ *                       type: string
+ *                       description: Faculty ID (optional, for faculty)
+ *     responses:
+ *       201:
+ *         description: Users created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     created:
+ *                       type: array
+ *                       description: Successfully created users
+ *                     failed:
+ *                       type: array
+ *                       description: Users that failed to create
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin access required
+ */
+router.post('/bulk', authenticate, requireAdmin, validateBulkUserCreation, userController.createBulkUsers);
 
 /**
  * @swagger

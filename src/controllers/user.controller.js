@@ -97,6 +97,23 @@ class UserController {
   }
 
   /**
+   * Create multiple users in bulk (Admin only)
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  async createBulkUsers(req, res) {
+    try {
+      const { users } = req.body;
+      const result = await userService.createBulkUsers(users);
+
+      return ResponseHandler.success(res, 201, 'Bulk user creation completed', result);
+    } catch (error) {
+      logger.error('Create bulk users error:', error);
+      return ResponseHandler.error(res, 400, error.message);
+    }
+  }
+
+  /**
    * Update user
    * @param {Object} req - Express request object
    * @param {Object} res - Express response object

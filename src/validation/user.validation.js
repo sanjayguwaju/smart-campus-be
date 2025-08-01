@@ -353,6 +353,61 @@ const validateStudentId = [
   handleValidationErrors
 ];
 
+/**
+ * Bulk user creation validation
+ */
+const validateBulkUserCreation = [
+  body('users')
+    .isArray({ min: 1, max: 100 })
+    .withMessage('Users must be an array with 1 to 100 items'),
+  
+  body('users.*.firstName')
+    .trim()
+    .notEmpty()
+    .withMessage('First name is required for all users')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('First name can only contain letters and spaces'),
+  
+  body('users.*.lastName')
+    .trim()
+    .notEmpty()
+    .withMessage('Last name is required for all users')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be between 2 and 50 characters')
+    .matches(/^[a-zA-Z\s]+$/)
+    .withMessage('Last name can only contain letters and spaces'),
+  
+  body('users.*.role')
+    .isIn(['admin', 'faculty', 'student'])
+    .withMessage('Role must be admin, faculty, or student'),
+  
+  body('users.*.department')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Department cannot exceed 100 characters'),
+  
+  body('users.*.studentId')
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Student ID must be between 3 and 20 characters')
+    .matches(/^[A-Z0-9]+$/)
+    .withMessage('Student ID can only contain uppercase letters and numbers'),
+  
+  body('users.*.facultyId')
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Faculty ID must be between 3 and 20 characters')
+    .matches(/^[A-Z0-9]+$/)
+    .withMessage('Faculty ID can only contain uppercase letters and numbers'),
+  
+  handleValidationErrors
+];
+
 module.exports = {
   validateUserRegistration,
   validateUserLogin,
@@ -365,5 +420,6 @@ module.exports = {
   validateResetPassword,
   validateAdminRegistration,
   validateStudentId,
+  validateBulkUserCreation,
   handleValidationErrors
 }; 
