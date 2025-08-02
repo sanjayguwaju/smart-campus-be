@@ -35,9 +35,8 @@ const validateBlogCreation = [
     .withMessage('Slug can only contain lowercase letters, numbers, and hyphens'),
   
   body('author')
+    .optional() // Make author optional since it's set automatically
     .trim()
-    .notEmpty()
-    .withMessage('Author is required')
     .isLength({ min: 2, max: 100 })
     .withMessage('Author name must be between 2 and 100 characters'),
   

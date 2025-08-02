@@ -15,7 +15,8 @@ class BlogService {
       const data = {
         title: blogData.title,
         slug: blogData.slug,
-        author: blogData.author,
+        author: blogData.author, // This should now be set by the controller
+        createdBy: blogData.createdBy, // This should now be set by the controller
         content: blogData.content,
         summary: blogData.summary,
         tags: blogData.tags || [],
