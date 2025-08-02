@@ -498,6 +498,7 @@ class CourseService {
         .populate('faculty', 'firstName lastName email department')
         .sort(sort)
         .skip(skip)
+        .lean()
         .limit(parseInt(limit));
 
       // Calculate pagination info

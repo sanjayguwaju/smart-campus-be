@@ -1064,6 +1064,116 @@ router.get(
  *           minimum: 1
  *           maximum: 100
  *           default: 10
+ *       - in: query
+ *         name: course
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by course ID
+ *       - in: query
+ *         name: assignmentType
+ *         schema:
+ *           type: string
+ *           enum: [Homework, Project, Quiz, Exam, Lab, Presentation, Essay, Research]
+ *         description: Filter by assignment type
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *           enum: [Easy, Medium, Hard, Expert]
+ *         description: Filter by difficulty
+ *       - in: query
+ *         name: dueDateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by due date from
+ *       - in: query
+ *         name: dueDateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by due date to
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [title, dueDate, createdAt, totalPoints, difficulty, assignmentType]
+ *           default: dueDate
+ *         description: Sort field
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search in title and description
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Filter by tags (comma-separated)
+ *       - in: query
+ *         name: includeOverdue
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Include only overdue assignments
+ *     responses:
+ *       200:
+ *         description: Course assignments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AssignmentListResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - only students can access
+ */
+router.get(
+  '/my-courses',
+  authenticate,
+  authorize(['student']),
+  validateAssignmentQuery,
+  assignmentController.getMyCourseAssignments
+);
+
+/**
+ * @swagger
+ * /api/v1/assignments/student/{studentId}/my-courses-assignments:
+ *   get:
+ *     summary: Get assignments for my courses (for students) - with student ID
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Student ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
  *     responses:
  *       200:
  *         description: Course assignments retrieved successfully
@@ -1082,6 +1192,294 @@ router.get(
   authorize(['student']),
   validateAssignmentQuery,
   assignmentController.getMyCourseAssignments
+);
+
+/**
+ * @swagger
+ * /api/v1/assignments/student/{studentId}:
+ *   get:
+ *     summary: Get assignments for a specific student (for admin/faculty)
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Student ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *       - in: query
+ *         name: course
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by course ID
+ *       - in: query
+ *         name: assignmentType
+ *         schema:
+ *           type: string
+ *           enum: [Homework, Project, Quiz, Exam, Lab, Presentation, Essay, Research]
+ *         description: Filter by assignment type
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *           enum: [Easy, Medium, Hard, Expert]
+ *         description: Filter by difficulty
+ *       - in: query
+ *         name: dueDateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by due date from
+ *       - in: query
+ *         name: dueDateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by due date to
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [title, dueDate, createdAt, totalPoints, difficulty, assignmentType]
+ *           default: dueDate
+ *         description: Sort field
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search in title and description
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Filter by tags (comma-separated)
+ *       - in: query
+ *         name: includeOverdue
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Include only overdue assignments
+ *     responses:
+ *       200:
+ *         description: Student assignments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Assignment'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: number
+ *                     limit:
+ *                       type: number
+ *                     total:
+ *                       type: number
+ *                     pages:
+ *                       type: number
+ *                 studentInfo:
+ *                   type: object
+ *                   properties:
+ *                     studentId:
+ *                       type: string
+ *                     studentName:
+ *                       type: string
+ *                     enrolledCourses:
+ *                       type: number
+ *                     currentSemester:
+ *                       type: number
+ *                     academicYear:
+ *                       type: string
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Student not found
+ */
+router.get(
+  '/student/:studentId',
+  authenticate,
+  authorize(['admin', 'faculty']),
+  validateAssignmentQuery,
+  assignmentController.getStudentAssignments
+);
+
+/**
+ * @swagger
+ * /api/v1/assignments/student/{studentId}/active:
+ *   get:
+ *     summary: Get active assignments for a specific student using aggregation (for admin/faculty)
+ *     tags: [Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Student ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *       - in: query
+ *         name: course
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by course ID
+ *       - in: query
+ *         name: assignmentType
+ *         schema:
+ *           type: string
+ *           enum: [Homework, Project, Quiz, Exam, Lab, Presentation, Essay, Research]
+ *         description: Filter by assignment type
+ *       - in: query
+ *         name: difficulty
+ *         schema:
+ *           type: string
+ *           enum: [Easy, Medium, Hard, Expert]
+ *         description: Filter by difficulty
+ *       - in: query
+ *         name: dueDateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by due date from
+ *       - in: query
+ *         name: dueDateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by due date to
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [title, dueDate, createdAt, totalPoints, difficulty, assignmentType]
+ *           default: dueDate
+ *         description: Sort field
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sort order
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search in title and description
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *         description: Filter by tags (comma-separated)
+ *     responses:
+ *       200:
+ *         description: Student active assignments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Assignment'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: number
+ *                     limit:
+ *                       type: number
+ *                     total:
+ *                       type: number
+ *                     pages:
+ *                       type: number
+ *                 studentInfo:
+ *                   type: object
+ *                   properties:
+ *                     studentId:
+ *                       type: string
+ *                     studentName:
+ *                       type: string
+ *                     enrolledCourses:
+ *                       type: number
+ *                     currentSemester:
+ *                       type: number
+ *                     academicYear:
+ *                       type: string
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ *       404:
+ *         description: Student not found
+ */
+router.get(
+  '/student/:studentId/active',
+  authenticate,
+  authorize(['admin', 'faculty']),
+  validateAssignmentQuery,
+  assignmentController.getStudentActiveAssignmentsAggregated
 );
 
 /**

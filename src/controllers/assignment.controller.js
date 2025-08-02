@@ -334,11 +334,95 @@ class AssignmentController {
       }
 
       const query = { ...req.query };
-      const result = await assignmentService.getAssignments(query, user);
+      const result = await assignmentService.getStudentActiveAssignmentsAggregated(user._id, query);
 
       return ResponseHandler.success(res, 200, 'Course assignments retrieved successfully', result.data, result.pagination);
     } catch (error) {
       logger.error('Error in getMyCourseAssignments controller:', error);
+      return ResponseHandler.error(res, error.status || 500, error.message);
+    }
+  }
+
+  /**
+   * Get assignments for a specific student (for admin/faculty)
+   */
+  async getStudentAssignments(req, res) {
+    try {
+      const user = req.user;
+      const { studentId } = req.params;
+      const query = { ...req.query };
+
+      // Check permissions
+      if (user.role === 'student') {
+        return ResponseHandler.forbidden(res, 'Students cannot access other students\' assignments');
+      }
+
+      // Faculty can only access assignments for students in their courses
+      if (user.role === 'faculty') {
+        // Check if the student is enrolled in any course taught by this faculty
+        const Course = require('../models/course.model');
+        const facultyCourses = await Course.find({ faculty: user._id }).select('_id');
+        const facultyCourseIds = facultyCourses.map(course => course._id);
+
+        const Enrollment = require('../models/enrollment.model');
+        const studentEnrollment = await Enrollment.findOne({
+          student: studentId,
+          status: 'active',
+          courses: { $in: facultyCourseIds }
+        });
+
+        if (!studentEnrollment) {
+          return ResponseHandler.forbidden(res, 'You can only access assignments for students enrolled in your courses');
+        }
+      }
+
+      const result = await assignmentService.getStudentAssignments(studentId, query);
+
+      return ResponseHandler.success(res, 200, 'Student assignments retrieved successfully', result.data, result.pagination);
+    } catch (error) {
+      logger.error('Error in getStudentAssignments controller:', error);
+      return ResponseHandler.error(res, error.status || 500, error.message);
+    }
+  }
+
+  /**
+   * Get active assignments for a student using aggregation (for admin/faculty)
+   */
+  async getStudentActiveAssignmentsAggregated(req, res) {
+    try {
+      const user = req.user;
+      const { studentId } = req.params;
+      const query = { ...req.query };
+
+      // Check permissions
+      if (user.role === 'student') {
+        return ResponseHandler.forbidden(res, 'Students cannot access other students\' assignments');
+      }
+
+      // Faculty can only access assignments for students in their courses
+      if (user.role === 'faculty') {
+        // Check if the student is enrolled in any course taught by this faculty
+        const Course = require('../models/course.model');
+        const facultyCourses = await Course.find({ faculty: user._id }).select('_id');
+        const facultyCourseIds = facultyCourses.map(course => course._id);
+
+        const Enrollment = require('../models/enrollment.model');
+        const studentEnrollment = await Enrollment.findOne({
+          student: studentId,
+          status: 'active',
+          courses: { $in: facultyCourseIds }
+        });
+
+        if (!studentEnrollment) {
+          return ResponseHandler.forbidden(res, 'You can only access assignments for students enrolled in your courses');
+        }
+      }
+
+      const result = await assignmentService.getStudentActiveAssignmentsAggregated(studentId, query);
+
+      return ResponseHandler.success(res, 200, 'Student active assignments retrieved successfully', result.data, result.pagination);
+    } catch (error) {
+      logger.error('Error in getStudentActiveAssignmentsAggregated controller:', error);
       return ResponseHandler.error(res, error.status || 500, error.message);
     }
   }

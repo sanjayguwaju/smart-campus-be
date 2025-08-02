@@ -5,6 +5,7 @@ const { ResponseHandler } = require('../utils/responseHandler');
 const logger = require('../utils/logger');
 const createError = require('../utils/createError');
 const { uploadImage, deleteImage } = require('../config/cloudinary.config');
+const { default: mongoose } = require('mongoose');
 
 class AssignmentService {
   /**
@@ -146,7 +147,7 @@ class AssignmentService {
         const enrollment = await Enrollment.findOne({ 
           student: user._id, 
           status: 'active' 
-        }).populate('courses');
+        }).populate('courses').lean();
         
         if (enrollment && enrollment.courses.length > 0) {
           const enrolledCourseIds = enrollment.courses.map(course => course._id);
@@ -584,6 +585,404 @@ class AssignmentService {
       };
     } catch (error) {
       logger.error('Error getting assignments by faculty:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get assignments assigned to a specific student
+   */
+  async getStudentAssignments(studentId, query = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        course,
+        assignmentType,
+        status,
+        difficulty,
+        dueDateFrom,
+        dueDateTo,
+        sortBy = 'dueDate',
+        sortOrder = 'asc',
+        search,
+        tags,
+        includeOverdue = false
+      } = query;
+
+      // Validate student exists and is actually a student
+      const student = await User.findById(studentId);
+      if (!student) {
+        throw createError(404, 'Student not found');
+      }
+      if (student.role !== 'student') {
+        throw createError(400, 'User is not a student');
+      }
+
+      // Get student's active enrollment and enrolled courses
+      const Enrollment = require('../models/enrollment.model');
+      const enrollment = await Enrollment.findOne({ 
+        student: studentId, 
+        status: 'active' 
+      }).populate('courses').lean();
+
+      if (!enrollment || !enrollment.courses || enrollment.courses.length === 0) {
+        // Return empty result if no active enrollment or courses
+        return {
+          assignments: [],
+          data: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          }
+        };
+      }
+
+      const enrolledCourseIds = enrollment.courses.map(course => course._id);
+
+      // Build filter object for assignments
+      const filter = {
+        course: { $in: enrolledCourseIds },
+        status: 'published',
+        isVisible: true
+      };
+
+      // Apply additional filters
+      if (course) {
+        // Validate that the course is in student's enrolled courses
+        if (!enrolledCourseIds.includes(course)) {
+          throw createError(403, 'Access denied - course not in enrolled courses');
+        }
+        filter.course = course;
+      }
+
+      if (assignmentType) filter.assignmentType = assignmentType;
+      if (difficulty) filter.difficulty = difficulty;
+      if (tags) {
+        const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+        filter.tags = { $in: tagArray };
+      }
+
+      // Date range filtering
+      if (dueDateFrom || dueDateTo) {
+        filter.dueDate = {};
+        if (dueDateFrom) filter.dueDate.$gte = new Date(dueDateFrom);
+        if (dueDateTo) filter.dueDate.$lte = new Date(dueDateTo);
+      }
+
+      // Search functionality
+      if (search) {
+        filter.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      // Status filtering - students can only see published assignments
+      if (status && status !== 'published') {
+        // If status is not published, return empty result
+        return {
+          assignments: [],
+          data: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          }
+        };
+      }
+
+      // Get total count for pagination
+      const total = await Assignment.countDocuments(filter);
+
+      // Calculate pagination
+      const skip = (page - 1) * limit;
+      const pages = Math.ceil(total / limit);
+
+      // Build sort object
+      const sort = {};
+      sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+      
+      // Add _id to sort for consistent pagination
+      if (sortBy !== '_id') {
+        sort._id = sortOrder === 'desc' ? -1 : 1;
+      }
+
+      // Execute query with pagination
+      const assignments = await Assignment.find(filter)
+        .populate('course', 'name code description')
+        .populate('faculty', 'firstName lastName email')
+        .populate('createdBy', 'firstName lastName')
+        .sort(sort)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      // Add overdue status to assignments
+      const assignmentsWithOverdueStatus = assignments.map(assignment => {
+        const isOverdue = assignment.dueDate < new Date() && assignment.status === 'published';
+        return {
+          ...assignment,
+          isOverdue,
+          daysUntilDue: Math.ceil((assignment.dueDate - new Date()) / (1000 * 60 * 60 * 24))
+        };
+      });
+
+      // Filter overdue assignments if requested
+      let finalAssignments = assignmentsWithOverdueStatus;
+      if (includeOverdue) {
+        finalAssignments = assignmentsWithOverdueStatus.filter(assignment => assignment.isOverdue);
+      }
+
+      return {
+        assignments: finalAssignments,
+        data: finalAssignments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: finalAssignments.length,
+          pages: Math.ceil(finalAssignments.length / limit)
+        },
+        studentInfo: {
+          studentId: student._id,
+          studentName: `${student.firstName} ${student.lastName}`,
+          enrolledCourses: enrollment.courses.length,
+          currentSemester: enrollment.semester,
+          academicYear: enrollment.academicYear
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting student assignments:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active assignments for a student using MongoDB aggregation
+   * This method uses aggregation pipeline for better performance
+   */
+  async getStudentActiveAssignmentsAggregated(studentId, query = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        course,
+        assignmentType,
+        difficulty,
+        dueDateFrom,
+        dueDateTo,
+        sortBy = 'dueDate',
+        sortOrder = 'asc',
+        search,
+        tags
+      } = query;
+
+      // Validate student exists and is actually a student
+      const student = await User.findById(studentId);
+      if (!student) {
+        throw createError(404, 'Student not found');
+      }
+      if (student.role !== 'student') {
+        throw createError(400, 'User is not a student');
+      }
+
+      // Build aggregation pipeline
+      const pipeline = [];
+
+      // Stage 1: Find student's active enrollment and get course IDs
+      const Enrollment = require('../models/enrollment.model');
+      const studentEnrollment = await Enrollment.findOne({ 
+        student: studentId, 
+        status: 'active' 
+      }).lean();
+
+      if (!studentEnrollment || !studentEnrollment.courses || studentEnrollment.courses.length === 0) {
+        // Return empty result if no active enrollment or courses
+        return {
+          assignments: [],
+          data: [],
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: 0,
+            pages: 0
+          },
+          studentInfo: {
+            studentId: student._id,
+            studentName: `${student.firstName} ${student.lastName}`,
+            enrolledCourses: 0,
+            currentSemester: null,
+            academicYear: null
+          }
+        };
+      }
+
+      const enrolledCourseIds = studentEnrollment.courses.map(course => course);
+
+      // Stage 1: Match assignments that are in enrolled courses and active
+      pipeline.push({
+        $match: {
+          $and: [
+            { course: { $in: enrolledCourseIds } },
+            { status: 'published' },
+          ]
+        }
+      });
+
+      // Stage 2: Apply additional filters
+      const matchStage = {};
+
+      if (course) {
+        matchStage.course = new mongoose.Types.ObjectId(course);
+      }
+
+      if (assignmentType) {
+        matchStage.assignmentType = assignmentType;
+      }
+
+      if (difficulty) {
+        matchStage.difficulty = difficulty;
+      }
+
+      if (tags) {
+        const tagArray = tags.split(',').map(tag => tag.trim().toLowerCase());
+        matchStage.tags = { $in: tagArray };
+      }
+
+      // Date range filtering
+      if (dueDateFrom || dueDateTo) {
+        matchStage.dueDate = {};
+        if (dueDateFrom) matchStage.dueDate.$gte = new Date(dueDateFrom);
+        if (dueDateTo) matchStage.dueDate.$lte = new Date(dueDateTo);
+      }
+
+      // Search functionality
+      if (search) {
+        matchStage.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      if (Object.keys(matchStage).length > 0) {
+        pipeline.push({ $match: matchStage });
+      }
+
+      // Stage 3: Lookup course information
+      pipeline.push({
+        $lookup: {
+          from: 'courses',
+          localField: 'course',
+          foreignField: '_id',
+          as: 'courseInfo'
+        }
+      });
+
+      // Stage 4: Lookup faculty information
+      pipeline.push({
+        $lookup: {
+          from: 'users',
+          localField: 'faculty',
+          foreignField: '_id',
+          as: 'facultyInfo'
+        }
+      });
+
+      // Stage 5: Lookup created by information
+      pipeline.push({
+        $lookup: {
+          from: 'users',
+          localField: 'createdBy',
+          foreignField: '_id',
+          as: 'createdByInfo'
+        }
+      });
+
+      // Stage 6: Unwind arrays and format data
+      pipeline.push({
+        $addFields: {
+          course: { $arrayElemAt: ['$courseInfo', 0] },
+          faculty: { $arrayElemAt: ['$facultyInfo', 0] },
+          createdBy: { $arrayElemAt: ['$createdByInfo', 0] }
+        }
+      });
+
+      // Stage 7: Project only needed fields
+      pipeline.push({
+        $project: {
+          courseInfo: 0,
+          facultyInfo: 0,
+          createdByInfo: 0
+        }
+      });
+
+      // Stage 8: Add computed fields
+      pipeline.push({
+        $addFields: {
+          isOverdue: {
+            $and: [
+              { $lt: ['$dueDate', new Date()] },
+              { $eq: ['$status', 'published'] }
+            ]
+          },
+          daysUntilDue: {
+            $ceil: {
+              $divide: [
+                { $subtract: ['$dueDate', new Date()] },
+                1000 * 60 * 60 * 24
+              ]
+            }
+          }
+        }
+      });
+
+      // Stage 9: Sort
+      const sortStage = {};
+      sortStage[sortBy] = sortOrder === 'desc' ? -1 : 1;
+      if (sortBy !== '_id') {
+        sortStage._id = sortOrder === 'desc' ? -1 : 1;
+      }
+      pipeline.push({ $sort: sortStage });
+
+      // Stage 10: Get total count for pagination
+      const countPipeline = [...pipeline, { $count: 'total' }];
+      const countResult = await Assignment.aggregate(countPipeline);
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+
+      // Stage 11: Apply pagination
+      const skip = (page - 1) * limit;
+      pipeline.push(
+        { $skip: skip },
+        { $limit: parseInt(limit) }
+      );
+
+      console.log(JSON.stringify(pipeline));
+
+      // Execute aggregation
+      const assignments = await Assignment.aggregate(pipeline);
+
+      return {
+        assignments,
+        data: assignments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        },
+        studentInfo: {
+          studentId: student._id,
+          studentName: `${student.firstName} ${student.lastName}`,
+          enrolledCourses: studentEnrollment ? studentEnrollment.courses.length : 0,
+          currentSemester: studentEnrollment ? studentEnrollment.semester : null,
+          academicYear: studentEnrollment ? studentEnrollment.academicYear : null
+        }
+      };
+    } catch (error) {
+      logger.error('Error getting student active assignments aggregated:', error);
       throw error;
     }
   }
