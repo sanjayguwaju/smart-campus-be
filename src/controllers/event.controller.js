@@ -379,7 +379,7 @@ class EventController {
     try {
       const { eventId } = req.params;
       const updateData = req.body;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const event = await eventService.updateEvent(eventId, updateData, userId);
 
@@ -422,7 +422,7 @@ class EventController {
   async deleteEvent(req, res) {
     try {
       const { eventId } = req.params;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const result = await eventService.deleteEvent(eventId, userId);
 
@@ -465,7 +465,7 @@ class EventController {
   async registerForEvent(req, res) {
     try {
       const { eventId } = req.params;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const result = await eventService.registerForEvent(eventId, userId);
 
@@ -505,7 +505,7 @@ class EventController {
   async cancelRegistration(req, res) {
     try {
       const { eventId } = req.params;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const result = await eventService.cancelRegistration(eventId, userId);
 
@@ -560,7 +560,7 @@ class EventController {
     try {
       const { eventId } = req.params;
       const { attendeeId } = req.body;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const result = await eventService.markAttended(eventId, attendeeId, userId);
 
@@ -617,7 +617,7 @@ class EventController {
     try {
       const { eventId } = req.params;
       const reviewData = req.body;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const result = await eventService.addReview(eventId, reviewData, userId);
 

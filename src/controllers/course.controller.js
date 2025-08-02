@@ -16,6 +16,7 @@ class CourseController {
     try {
       const filters = {
         department: req.query.department,
+        program: req.query.program,
         semester: req.query.semester,
         year: req.query.year ? parseInt(req.query.year) : undefined,
         instructor: req.query.instructor,
