@@ -73,11 +73,12 @@ class CourseService {
   async getCourses(filters = {}, pagination = {}) {
     try {
       const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = pagination;
-      const { department, semester, year, faculty, isActive, isPublished, available, search } = filters;
+      const { department, program, semester, year, faculty, isActive, isPublished, available, search } = filters;
 
       // Build query
       const query = {};
       if (department) query.department = { $regex: department, $options: 'i' };
+      if (program) query.program = program;
       if (semester) query.semester = semester;
       if (year) query.year = year;
       if (faculty) query.faculty = faculty;

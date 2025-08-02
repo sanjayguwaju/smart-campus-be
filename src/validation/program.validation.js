@@ -1,5 +1,21 @@
-const { body, param, query } = require('express-validator');
-const { validateRequest } = require('../middleware/validation.middleware');
+const { body, param, query, validationResult } = require('express-validator');
+const { ResponseHandler } = require('../utils/responseHandler');
+
+/**
+ * Validation result handler
+ */
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const formattedErrors = errors.array().map(error => ({
+      field: error.path,
+      message: error.msg,
+      value: error.value
+    }));
+    return ResponseHandler.validationError(res, formattedErrors);
+  }
+  next();
+};
 
 // Validation for program creation
 const validateProgramCreation = [
@@ -81,7 +97,7 @@ const validateProgramCreation = [
     .isIn(['draft', 'published', 'archived'])
     .withMessage('Status must be either "draft", "published", or "archived"'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for program update
@@ -170,7 +186,7 @@ const validateProgramUpdate = [
     .isIn(['draft', 'published', 'archived'])
     .withMessage('Status must be either "draft", "published", or "archived"'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for program ID parameter
@@ -181,7 +197,7 @@ const validateProgramId = [
     .isMongoId()
     .withMessage('Invalid program ID format'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for department ID parameter
@@ -192,7 +208,7 @@ const validateDepartmentId = [
     .isMongoId()
     .withMessage('Invalid department ID format'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for level parameter
@@ -203,7 +219,7 @@ const validateLevel = [
     .isIn(['Undergraduate', 'Postgraduate'])
     .withMessage('Level must be either "Undergraduate" or "Postgraduate"'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for program query parameters
@@ -254,7 +270,7 @@ const validateProgramQuery = [
     .isIn(['asc', 'desc'])
     .withMessage('Sort order must be either "asc" or "desc"'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for search query parameters
@@ -271,7 +287,7 @@ const validateSearchQuery = [
     .isInt({ min: 1, max: 50 })
     .withMessage('Limit must be between 1 and 50'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for publish/unpublish
@@ -288,7 +304,7 @@ const validatePublishProgram = [
     .isBoolean()
     .withMessage('isPublished must be a boolean'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 module.exports = {

@@ -1,5 +1,21 @@
-const { body, param, query } = require('express-validator');
-const { validateRequest } = require('../middleware/validation.middleware');
+const { body, param, query, validationResult } = require('express-validator');
+const { ResponseHandler } = require('../utils/responseHandler');
+
+/**
+ * Validation result handler
+ */
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const formattedErrors = errors.array().map(error => ({
+      field: error.path,
+      message: error.msg,
+      value: error.value
+    }));
+    return ResponseHandler.validationError(res, formattedErrors);
+  }
+  next();
+};
 
 // Validation for blog creation
 const validateBlogCreation = [
@@ -97,7 +113,7 @@ const validateBlogCreation = [
       return true;
     }),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for blog update
@@ -200,7 +216,7 @@ const validateBlogUpdate = [
       return true;
     }),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for blog ID parameter
@@ -211,7 +227,7 @@ const validateBlogId = [
     .isMongoId()
     .withMessage('Invalid blog ID format'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for blog slug parameter
@@ -224,7 +240,7 @@ const validateBlogSlug = [
     .matches(/^[a-z0-9-]+$/)
     .withMessage('Slug can only contain lowercase letters, numbers, and hyphens'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for author parameter
@@ -235,7 +251,7 @@ const validateAuthor = [
     .isLength({ min: 2, max: 100 })
     .withMessage('Author name must be between 2 and 100 characters'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for blog query parameters
@@ -296,7 +312,7 @@ const validateBlogQuery = [
     .isIn(['asc', 'desc'])
     .withMessage('Sort order must be either "asc" or "desc"'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for search query parameters
@@ -313,7 +329,7 @@ const validateSearchQuery = [
     .isInt({ min: 1, max: 50 })
     .withMessage('Limit must be between 1 and 50'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for tags query parameters
@@ -334,7 +350,7 @@ const validateTagsQuery = [
       return true;
     }),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for recent blogs query parameters
@@ -344,7 +360,7 @@ const validateRecentBlogsQuery = [
     .isInt({ min: 1, max: 20 })
     .withMessage('Limit must be between 1 and 20'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for popular tags query parameters
@@ -354,7 +370,7 @@ const validatePopularTagsQuery = [
     .isInt({ min: 1, max: 50 })
     .withMessage('Limit must be between 1 and 50'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 // Validation for publish/unpublish
@@ -371,7 +387,7 @@ const validatePublishBlog = [
     .isBoolean()
     .withMessage('isPublished must be a boolean'),
   
-  validateRequest
+  handleValidationErrors
 ];
 
 module.exports = {
