@@ -76,14 +76,25 @@ async function createBlog(req, res) {
     let coverImage = null;
     if (req.file) {
       // File was uploaded via multer
-      coverImage = req.file.path;
+      coverImage = {
+        url: req.file.path,
+        alt: req.body.coverImageAlt || '',
+        caption: req.body.coverImageCaption || ''
+      };
     } else if (req.body.coverImage) {
       // URL was sent as string in form data
-      coverImage = req.body.coverImage;
+      coverImage = {
+        url: req.body.coverImage,
+        alt: req.body.coverImageAlt || '',
+        caption: req.body.coverImageCaption || ''
+      };
     }
     
+    // Set author and createdBy to the current user's ID
     const blogData = {
       ...req.body,
+      author: req.user._id, // Use the authenticated user's ID
+      createdBy: req.user._id, // Use the authenticated user's ID
       coverImage: coverImage
     };
 
@@ -107,16 +118,29 @@ async function updateBlog(req, res) {
     let coverImage = null;
     if (req.file) {
       // File was uploaded via multer
-      coverImage = req.file.path;
+      coverImage = {
+        url: req.file.path,
+        alt: req.body.coverImageAlt || '',
+        caption: req.body.coverImageCaption || ''
+      };
     } else if (req.body.coverImage) {
       // URL was sent as string in form data
-      coverImage = req.body.coverImage;
+      coverImage = {
+        url: req.body.coverImage,
+        alt: req.body.coverImageAlt || '',
+        caption: req.body.coverImageCaption || ''
+      };
     }
     
     const updateData = {
       ...req.body,
-      coverImage: coverImage
+      lastModifiedBy: req.user._id // Set the user who modified the blog
     };
+    
+    // Only update coverImage if it's provided (either as file or URL)
+    if (coverImage !== null) {
+      updateData.coverImage = coverImage;
+    }
 
     const blog = await blogService.updateBlog(req.params.id, updateData);
     
