@@ -54,6 +54,8 @@ class AssignmentService {
 
       const assignment = new Assignment({
         ...assignmentData,
+        status: 'published', // Auto-publish assignments
+        isVisible: true,     // Make them immediately visible
         createdBy: userId,
         lastModifiedBy: userId
       });
@@ -97,6 +99,8 @@ class AssignmentService {
 
       const assignment = new Assignment({
         ...assignmentData,
+        status: 'published', // Auto-publish assignments
+        isVisible: true,     // Make them immediately visible
         createdBy: facultyId,
         lastModifiedBy: facultyId
       });

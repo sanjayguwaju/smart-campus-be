@@ -972,6 +972,112 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/submissions/faculty/{facultyId}:
+ *   get:
+ *     summary: Get submissions for faculty's assignments
+ *     tags: [Submissions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: facultyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Faculty ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: assignment
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by assignment ID
+ *       - in: query
+ *         name: student
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by student ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [submitted, under_review, graded, returned, late, rejected]
+ *         description: Filter by status
+ *       - in: query
+ *         name: grade
+ *         schema:
+ *           type: string
+ *           enum: [A+, A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F, Incomplete, Pass, Fail]
+ *         description: Filter by grade
+ *       - in: query
+ *         name: isLate
+ *         schema:
+ *           type: boolean
+ *         description: Filter by late submissions
+ *       - in: query
+ *         name: plagiarismFlagged
+ *         schema:
+ *           type: boolean
+ *         description: Filter by plagiarism flagged submissions
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [submittedAt, reviewedAt, numericalScore, grade, status]
+ *           default: submittedAt
+ *         description: Sort field
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search in file names, comments, and notes
+ *     responses:
+ *       200:
+ *         description: Faculty submissions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SubmissionListResponse'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - insufficient permissions
+ */
+router.get(
+  '/faculty/:facultyId',
+  authenticate,
+  authorize(['admin', 'faculty']),
+  submissionController.getSubmissionsByFaculty
+);
+
+/**
+ * @swagger
  * /api/v1/submissions/bulk:
  *   post:
  *     summary: Perform bulk operations on submissions

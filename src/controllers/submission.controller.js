@@ -177,10 +177,34 @@ class SubmissionController {
    */
   async getSubmissionsByStudent(req, res) {
     try {
-      const submissions = await submissionService.getSubmissionsByStudent(req.params.studentId, req.user);
-      ResponseHandler.success(res, 200, 'Student submissions retrieved successfully', submissions);
+      const result = await submissionService.getSubmissionsByStudent(req.params.studentId, req.user, req.query);
+      ResponseHandler.success(res, 200, 'Student submissions retrieved successfully', {
+        submissions: result.submissions,
+        pagination: result.pagination
+      });
     } catch (error) {
       logger.error('Error in getSubmissionsByStudent controller:', error);
+      ResponseHandler.error(res, error.status || 500, error.message);
+    }
+  }
+
+  /**
+   * Get submissions by faculty
+   */
+  async getSubmissionsByFaculty(req, res) {
+    try {
+      const { facultyId } = req.params;
+      
+      // Check if the requesting user is the faculty member or an admin
+      if (req.user.role !== 'admin' && req.user._id.toString() !== facultyId) {
+        return ResponseHandler.forbidden(res, 'You can only view your own submissions');
+      }
+      
+      const query = { ...req.query };
+      const result = await submissionService.getSubmissions(query, req.user);
+      ResponseHandler.success(res, 200, 'Faculty submissions retrieved successfully', result);
+    } catch (error) {
+      logger.error('Error in getSubmissionsByFaculty controller:', error);
       ResponseHandler.error(res, error.status || 500, error.message);
     }
   }

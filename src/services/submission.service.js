@@ -541,31 +541,127 @@ class SubmissionService {
   /**
    * Get submissions by student
    */
-  async getSubmissionsByStudent(studentId, user) {
+  async getSubmissionsByStudent(studentId, user, query = {}) {
     try {
+      const {
+        page = 1,
+        limit = 10,
+        search,
+        status,
+        assignment,
+        course,
+        isLate,
+        isGraded,
+        sortBy = 'submittedAt',
+        sortOrder = 'desc'
+      } = query;
+
       // Check permissions
       if (user.role === 'student' && studentId !== user._id.toString()) {
         throw createError(403, 'Students can only view their own submissions');
       }
       
+      // Build filter object
+      const filter = { student: studentId };
+      
       if (user.role === 'faculty') {
         // Faculty can only see submissions for assignments they created
         const facultyAssignments = await Assignment.find({ faculty: user._id }).select('_id');
-        const submissions = await Submission.find({
-          student: studentId,
-          assignment: { $in: facultyAssignments.map(a => a._id) }
-        }).populate('assignment', 'title course').populate('reviewedBy', 'firstName lastName').lean();
-        
-        return submissions;
+        filter.assignment = { $in: facultyAssignments.map(a => a._id) };
       }
       
-      // Admin can see all submissions
-      const submissions = await Submission.findByStudent(studentId)
-        .populate('assignment', 'title course')
-        .populate('reviewedBy', 'firstName lastName')
-        .lean();
+      // Apply additional filters
+      if (status) filter.status = status;
+      if (assignment) filter.assignment = assignment;
+      if (isLate !== undefined) filter.isLate = isLate;
+      if (isGraded !== undefined) {
+        if (isGraded) {
+          filter.status = 'graded';
+        } else {
+          filter.status = { $ne: 'graded' };
+        }
+      }
       
-      return submissions;
+      // Search functionality
+      if (search) {
+        filter.$or = [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
+      
+      // Course filtering (if needed)
+      if (course) {
+        // This would require a lookup to assignment.course
+        // For now, we'll implement this later if needed
+      }
+      
+      // Build aggregation pipeline
+      const pipeline = [
+        { $match: filter },
+        {
+          $lookup: {
+            from: 'assignments',
+            localField: 'assignment',
+            foreignField: '_id',
+            as: 'assignmentInfo'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'reviewedBy',
+            foreignField: '_id',
+            as: 'reviewedByInfo'
+          }
+        },
+        {
+          $addFields: {
+            assignment: { $arrayElemAt: ['$assignmentInfo', 0] },
+            reviewedBy: { $arrayElemAt: ['$reviewedByInfo', 0] }
+          }
+        },
+        {
+          $project: {
+            assignmentInfo: 0,
+            reviewedByInfo: 0
+          }
+        }
+      ];
+      
+      // Course filtering after lookup
+      if (course) {
+        pipeline.push({
+          $match: {
+            'assignment.course': course
+          }
+        });
+      }
+      
+      // Get total count for pagination
+      const countPipeline = [...pipeline, { $count: 'total' }];
+      const countResult = await Submission.aggregate(countPipeline);
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+      
+      // Add sorting and pagination
+      pipeline.push(
+        { $sort: { [sortBy]: sortOrder === 'desc' ? -1 : 1 } },
+        { $skip: (page - 1) * limit },
+        { $limit: parseInt(limit) }
+      );
+      
+      // Execute aggregation
+      const submissions = await Submission.aggregate(pipeline);
+      
+      return {
+        submissions,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      };
     } catch (error) {
       logger.error('Error getting submissions by student:', error);
       throw error;

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
 const { authenticate, requireAdmin, canAccessOwnResource, authenticateAdmin } = require('../middleware/auth.middleware');
+const { ResponseHandler } = require('../utils/responseHandler');
 const {
   validateUserRegistration,
   validateUserUpdate,
@@ -323,7 +324,23 @@ router.delete('/:userId', authenticate, requireAdmin, validateUserId, userContro
  *       200:
  *         description: Users retrieved successfully
  */
-router.get('/role/:role', authenticate, requireAdmin, userController.getUsersByRole);
+router.get('/role/:role', authenticate, (req, res, next) => {
+  // Allow faculty to get other faculty members, but require admin for other roles
+  const { role } = req.params;
+  const userRole = req.user.role;
+  
+  if (role === 'faculty' && userRole === 'faculty') {
+    // Faculty can get other faculty members
+    return next();
+  }
+  
+  // For all other cases, require admin
+  if (userRole !== 'admin') {
+    return ResponseHandler.forbidden(res, 'Insufficient permissions');
+  }
+  
+  next();
+}, userController.getUsersByRole);
 
 /**
  * @swagger
