@@ -544,11 +544,6 @@ class UserService {
         throw new Error('Admin cannot deactivate their own account');
       }
 
-      // Prevent deactivating other admins (optional security measure)
-      if (targetUser.role === 'admin') {
-        throw new Error('Cannot deactivate admin accounts');
-      }
-
       // Deactivate user
       targetUser.isActive = false;
       await targetUser.save();
